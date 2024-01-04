@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "operations.h"
+#include "raylib.h"
 
 struct pixel{
 	int r;
@@ -589,11 +590,31 @@ void start(){
 
  
 int main() {
-    char filename[] = "input.ppm";
+    char filename[] = "example.ppm";
     image img = read_ppm(filename);
-	pixel p;
+	pixel p = get_pixel(img,0,0);
+	printf("r: %d, g : %d , b : %d\n", p.r, p.g, p.b);
 	printf("w: %d, h : %d", img.w, img.h);
 	//printf("r: %d, g: %d, b: %d", p.r, p.g, p.b);
+	Color c = (Color){p.r, p.g, p.b, 255};
+	
+	const int screenWidth = img.w * 50;
+	const int screenHeight = img.h * 50;
+	InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
+	SetTargetFPS(60);
+	while(true){
+	BeginDrawing();
+	ClearBackground(RAYWHITE);
+	for(int x = 0; x < img.w; x++){
+		for(int y = 0; y < img.h; y++){
+			p = get_pixel(img, x, y);
+			Color col = (Color){p.r, p.g, p.b, 255};
+			DrawRectangle(x * 50,y * 50,50,50,col);
+		}
+	}
+	EndDrawing();
+	}
+	
 	free(img.pixels);
 	//start();
     return 0;
