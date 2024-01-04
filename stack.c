@@ -20,7 +20,10 @@ void push(stack* s,int i){
 
 
 int pop(stack* s){
-	if(s->top == NULL) exit(1);
+	if(s->top == NULL){
+		while(true);
+		exit(7);
+	}
 	maillon* m = s->top;
 	s->top = m->next;
 	s->n--;

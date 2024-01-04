@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "stack.h"
+#include "operations.h"
+
 struct pixel{
 	int r;
 	int g;
@@ -117,7 +118,6 @@ image read_ppm(char* filename) {
     	fread(&red, 1, 1, fp);
     	fread(&green, 1, 1, fp);
     	fread(&blue, 1, 1, fp);
-		printf("the %dth pixel:%d %d %d \n", i,red,green,blue);
 		img.pixels[i].r = red;
 		img.pixels[i].b = blue;
 		img.pixels[i].g = green;
@@ -361,13 +361,41 @@ bool is_block_color(pixel p){
 	return false;
 }
 
+/*
+int get_block_size(image i, pixel init, int x, int y, bool* traite) {
+    if (x < 0 || x >= i.w || y < 0 || y >= i.h || traite[i.w * y + x]) {
+        return 0;
+    }
 
+    traite[i.w * y + x] = true;
+    if (!pixel_eq(init, get_pixel(i, x, y))) {
+        return 0;
+    }
 
-point get_next_pixel_edge(image i, int x, int y, int direction, int bord){
+    int v1 = get_block_size(i, init, x + 1, y, traite);
+    int v2 = get_block_size(i, init, x - 1, y, traite);
+    int v3 = get_block_size(i, init, x, y - 1, traite);
+    int v4 = get_block_size(i, init, x, y + 1, traite);
+
+    return 1 + v1 + v2 + v3 + v4;
+}
+*/
+int get_block_size(image i, pixel init ,int x, int y, bool* traite){
+	if(traite[i.w * y + x]) return 0;
+	traite[i.w * y + x] = true;
+	if(!pixel_eq(init, get_pixel(i,x,y))) return 0;
+	int v1 = get_block_size(i,init,x+1,y,traite);
+	int v2 = get_block_size(i,init,x-1,y,traite);
+	int v3 = get_block_size(i,init,x,y-1,traite);
+	int v4 = get_block_size(i,init,x,y+1,traite);
+	return 1 + v1 + v2 + v3 + v4;
+}
+
+//NEED TO FREE TRAITE
+point get_next_pixel_edge(image i, int x, int y, int direction, int bord, bool* traite){
 	point p;
 	p.x = x;
 	p.y = y;
-	bool* traite = malloc(sizeof(bool) * i.h * i.w);
 	if(direction == 1){
 		if(bord == 0) return rightedge_up(i, p, get_pixel(i, x, y), x, y, traite);
 		return rightedge_down(i, p, get_pixel(i, x, y), x, y, traite);
@@ -389,8 +417,14 @@ point get_next_pixel_edge(image i, int x, int y, int direction, int bord){
 
 
 
-point get_next_block(image i, int x, int y,int* bord, int direction, int count){
+point get_next_block(image i, int x, int y,int* bord, int* d, int count, bool has_turned){
+	bool* traite = calloc(i.h * i.w, sizeof(bool));
+	point ed = get_next_pixel_edge(i, x, y, *d, *bord,traite);
+	free(traite);
+	x = ed.x;
+	y = ed.y;
 	int b = *bord;
+	int direction = *d;
 	int ox = x;
 	int oy = y;
 	int dx;
@@ -411,8 +445,7 @@ point get_next_block(image i, int x, int y,int* bord, int direction, int count){
 		dx = -1;
 		dy = 0;
 	}
-	bool check = true;
-	while(check){
+	while(true){
 		x = x + dx;
 		y = y + dy;
 		pixel p = get_pixel(i, x, y);
@@ -422,16 +455,101 @@ point get_next_block(image i, int x, int y,int* bord, int direction, int count){
 		if(is_block_color(p)) return pp;
 		if(is_passante(p)) continue;
 		else{
-			if(count == 8){
-				exit(1);	
+			if(has_turned){
+				if(count == 8){
+					exit(2);	
+				}
+				else{
+					*d = (*d + 1) % 4;
+					return get_next_block(i, ox, oy, bord, d, count+1, false);
+				}
 			}
 			else{
 				*bord = (b + 2) % 4;
-				return get_next_block(i, ox, oy, bord, direction, count+1);
+				return get_next_block(i, ox, oy, bord, d, count, true);
 			}
 		}
 	}
 }
+
+//0 red
+//1 yellow
+//2 green
+//3 cyan
+//4 blue
+//5 magenta
+int associate_col(int c) {
+	//peut aussi être coder en parcourant colortab 3 par 3
+	if (c == lightred || c == red || c == darkred) return 0;
+	else if (c == lightyellow || c == yellow || c == darkyellow) return 1;
+	else if (c == lightgreen || c == green || c == darkgreen) return 2;
+	else if (c == lightcyan || c == cyan || c == darkcyan) return 3;
+	else if (c == lightblue || c == blue || c == darkblue) return 4;
+	else if (c == lightmagenta || c == magenta || c == darkmagenta) return 5;
+	return -1; 
+}
+//0 light
+//1 normal
+//2 dark
+int associate_lum(int c) {
+	if (c == lightred || c == lightyellow || c == lightgreen || c == lightcyan || c == lightblue || c == lightmagenta) return 0;
+	if (c == red || c == yellow || c == green || c == cyan || c == blue || c == magenta) return 1;
+	if (c == darkred || c == darkyellow || c == darkgreen || c == darkcyan || c == darkblue || c == darkmagenta) return 2;
+	return -1; 
+}
+
+void operate(image i,stack* s, int* dir, int* bo, point prev_block, point  curr_block){
+	int prev = rgbtohtml(get_pixel(i, prev_block.x, prev_block.y));
+	int curr = rgbtohtml(get_pixel(i, curr_block.x, curr_block.y));
+	int c1 = associate_col(prev);
+	int c2 = associate_col(curr);
+	int cran = (c1 - c2 < 0) ? c2 - c1 : c1 - c2;
+	int l1 = associate_lum(prev);
+	int l2 = associate_lum(curr);
+	int diff_lum = (l1 - l2 < 0) ? l2 - l1 : l1 - l2;
+	if(cran == 0){
+		if(diff_lum == 1){
+			bool* traite = malloc(i.w * i.h *sizeof(bool));
+			for(int j = 0; j < i.w * i.h; j++) traite[j] = false;
+			int size = get_block_size(i, get_pixel(i,prev_block.x,prev_block.y), prev_block.x,prev_block.y, traite);
+			free(traite);
+			push(s,size);
+		}
+		if(diff_lum == 2 && s->n > 0) pop(s);
+	}
+	if(cran == 1){
+		if(diff_lum == 0) plus(s);
+		if(diff_lum == 1) moins(s);
+		if(diff_lum == 2) fois(s);
+	}
+	if(cran == 2){
+		if(diff_lum == 0) divise(s);
+		if(diff_lum == 1) reste(s);
+		if(diff_lum == 2) non(s);
+	}
+	if(cran == 3){
+		if(diff_lum == 0) plus_grand(s);
+		if(diff_lum == 1) {
+			int new_d = direction(s, *dir);
+			*dir = new_d;
+		}
+		if(diff_lum == 2){
+			int new_b = bord(s, *bo);
+			*bo = new_b;
+		}
+	}
+	if(cran == 4){
+		if(diff_lum == 0) duplique(s);
+		if(diff_lum == 1) tourne(s);
+		if(diff_lum == 2) in_num(s);
+	}
+	if(cran == 5){
+		if(diff_lum == 0) in_char(s); 
+		if(diff_lum == 1) out_num(s);
+		if(diff_lum == 2) out_char(s);
+	}
+}
+
 
 
 
@@ -441,11 +559,21 @@ point get_next_block(image i, int x, int y,int* bord, int direction, int count){
 //3 ouest
 //0 babord
 //1 tribord
-void interprete(image i, int x, int y, int direction, int bord, stack* s){
-	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
-	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
-	
-		
+void interprete(image i, int x, int y, int dir, int bo, stack* s){
+	while(true){
+	printf("%d, %d\n", x, y);
+	fflush(stdout);
+	//x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
+	//y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
+	point next_block = get_next_block(i, x, y, &bo, &dir, 0, false);
+	point curr;
+	curr.x = x;
+	curr.y = y;
+	operate(i, s, &dir, &bo, curr, next_block);
+	x = next_block.x;
+	y = next_block.y;
+   }
+//	interprete(i, next_block.x, next_block.y, dir, bo, s);
 }
 
 
@@ -455,16 +583,18 @@ void start(){
 	image i = read_ppm("input.ppm");
 	stack* s = create_stack();
 	interprete(i,0,0, 1, 0, s);
+	free(s);
 }
 
 
  
 int main() {
-    char filename[] = "example.ppm";
+    char filename[] = "input.ppm";
     image img = read_ppm(filename);
-	pixel p = get_pixel(img, 1, 6);
-	int rg = rgbtohtml(p);
-	printf("%#08x\n",rg);
+	pixel p;
+	printf("w: %d, h : %d", img.w, img.h);
+	//printf("r: %d, g: %d, b: %d", p.r, p.g, p.b);
 	free(img.pixels);
+	//start();
     return 0;
 }

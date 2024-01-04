@@ -69,7 +69,7 @@ int bord(stack* s, int b){
 int direction(stack* s, int d){
 	if(s->n < 1){
 		perror("not enough stack elements");
-		exit(1);
+		exit(43);
 	}
 	return (d + pop(s)) % 4;
 }
