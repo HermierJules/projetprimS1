@@ -327,7 +327,7 @@ point upedge_left(image i, point start ,pixel init, int x, int y, bool* traite){
 point upedge_right(image i, point start ,pixel init, int x, int y, bool* traite){
 	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
 	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h; 
-	traite[y * i.w + x] = 1;
+	traite[y * i.w + x] = true;
 	point p = start;
 	if(pixel_eq(get_pixel(i, x, y), init)) {
 		if(!traite[normalize(x, y+1, i)]){
@@ -347,6 +347,7 @@ point upedge_right(image i, point start ,pixel init, int x, int y, bool* traite)
 			if((p.y > v.y) || (p.y == v.y && p.x < v.x)) p = v;	
 		}
 	}
+	printf("my best point is %d %d\n", p.x, normalize(x,y,i));
 	return p;
 }
 
@@ -588,7 +589,21 @@ void start(){
 }
 
 
- 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int main() {
     char filename[] = "example.ppm";
     image img = read_ppm(filename);
@@ -597,10 +612,19 @@ int main() {
 	printf("w: %d, h : %d", img.w, img.h);
 	//printf("r: %d, g: %d, b: %d", p.r, p.g, p.b);
 	Color c = (Color){p.r, p.g, p.b, 255};
-	
-	const int screenWidth = img.w * 50;
-	const int screenHeight = img.h * 50;
+	int scale = 30;	
+	const int screenWidth = img.w * scale;
+	const int screenHeight = img.h * scale;
 	InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
+
+	point start;
+	start.x = 0;
+	start.y = 0;
+	bool * traite = malloc(sizeof(bool) * img.w * img.h);
+	for(int j = 0; j < img.w * img.h; j++) traite[j] = false;
+	point highpoint = upedge_right(img, start, p, 0,0, traite);
+	free(traite);
+
 	SetTargetFPS(60);
 	while(true){
 	BeginDrawing();
@@ -609,9 +633,11 @@ int main() {
 		for(int y = 0; y < img.h; y++){
 			p = get_pixel(img, x, y);
 			Color col = (Color){p.r, p.g, p.b, 255};
-			DrawRectangle(x * 50,y * 50,50,50,col);
+			DrawRectangle(x * scale,y * scale,scale,scale,col);
 		}
 	}
+			 Color highlight = (Color){ GetRandomValue(100, 250), GetRandomValue(50, 150), GetRandomValue(10, 100), 255 };
+			DrawRectangle(highpoint.x * scale,highpoint.y * scale,scale,scale,highlight);
 	EndDrawing();
 	}
 	
