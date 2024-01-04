@@ -363,7 +363,7 @@ bool is_block_color(pixel p){
 	return false;
 }
 
-/*
+
 int get_block_size(image i, pixel init, int x, int y, bool* traite) {
     if (x < 0 || x >= i.w || y < 0 || y >= i.h || traite[i.w * y + x]) {
         return 0;
@@ -381,7 +381,7 @@ int get_block_size(image i, pixel init, int x, int y, bool* traite) {
 
     return 1 + v1 + v2 + v3 + v4;
 }
-*/
+/*
 int get_block_size(image i, pixel init ,int x, int y, bool* traite){
 	if(traite[i.w * y + x]) return 0;
 	traite[i.w * y + x] = true;
@@ -391,32 +391,9 @@ int get_block_size(image i, pixel init ,int x, int y, bool* traite){
 	int v3 = get_block_size(i,init,x,y-1,traite);
 	int v4 = get_block_size(i,init,x,y+1,traite);
 	return 1 + v1 + v2 + v3 + v4;
-}
+}*/
 
 //NEED TO FREE TRAITE
-point get_next_pixel_edge(image i, int x, int y, int direction, int bord, bool* traite){
-	point p;
-	p.x = x;
-	p.y = y;
-	if(direction == 1){
-		if(bord == 0) return rightedge_up(i, p, get_pixel(i, x, y), x, y, traite);
-		return rightedge_down(i, p, get_pixel(i, x, y), x, y, traite);
-	}
-	if(direction == 2){
-		if(bord == 0) return downedge_right(i, p, get_pixel(i, x, y), x, y, traite);
-		return downedge_left(i, p, get_pixel(i, x, y), x, y, traite);
-	}
-	if(direction == 3){
-		if(bord == 0) return leftedge_down(i, p, get_pixel(i, x, y), x, y, traite);
-		return leftedge_up(i, p, get_pixel(i, x, y), x, y, traite);
-	}
-	if(direction == 4) {
-		if(bord == 0) return upedge_left(i, p, get_pixel(i, x, y), x, y, traite);
-		return upedge_right(i, p, get_pixel(i, x, y), x, y, traite);
-	}
-	return rightedge_up(i, p, get_pixel(i, x, y), x, y, traite);
-}
-
 
 
 
@@ -512,8 +489,8 @@ point find_next_border( pixel init, point start, int x, int y,image i, bool* tra
 	curr.x = x;
 	curr.y = y;
 	if(traite[get_pos(curr, i)]) return start;
-	printf("passing by %dth point, is front : %d\n", get_pos(curr, i), front(i,curr));
-	fflush(stdout);
+	//printf("passing by %dth point, is front : %d\n", get_pos(curr, i), front(i,curr));
+	//fflush(stdout);
 	traite[get_pos(curr, i)] = true;
 	pixel p = get_pixel(i,curr.x,curr.y);
 	if(pixel_eq(init,p)){
@@ -528,6 +505,48 @@ point find_next_border( pixel init, point start, int x, int y,image i, bool* tra
 		return curr;
 	}
 	return start;
+}
+
+point get_next_pixel_edge(image i, int x, int y, int direction, int bord, bool* traite){
+	point p;
+	p.x = x;
+	p.y = y;
+	if(direction == 1){
+		point final;
+		bool* traite = malloc(sizeof(bool) * i.w * i.h);
+		for(int k = 0; k < i.w * i.h; k++) traite[k] = false;
+		if(bord == 0) final = find_next_border(get_pixel(i,x,y), p, p.x, p.y, i, traite, righter , upper, est_front);
+		else final = find_next_border(get_pixel(i,x,y), p, p.x, p.y, i, traite, righter , lower, est_front);
+		free(traite);
+		return final;
+	}
+	if(direction == 2){
+		point final;
+		bool* traite = malloc(sizeof(bool) * i.w * i.h);
+		for(int k = 0; k < i.w * i.h; k++) traite[k] = false;
+		if(bord == 0) final = find_next_border(get_pixel(i,x,y), p, p.x, p.y, i, traite, lower , righter, sud_front);
+		else final = find_next_border(get_pixel(i,x,y), p, p.x, p.y, i, traite, lower , lefter, sud_front);
+		free(traite);
+		return final;
+	}
+	if(direction == 3){
+		point final;
+		bool* traite = malloc(sizeof(bool) * i.w * i.h);
+		for(int k = 0; k < i.w * i.h; k++) traite[k] = false;
+		if(bord == 0) final = find_next_border(get_pixel(i,x,y), p, p.x, p.y, i, traite, righter , lower, ouest_front);
+		else final = find_next_border(get_pixel(i,x,y), p, p.x, p.y, i, traite, righter , upper, ouest_front);
+		free(traite);
+		return final;
+	}
+	else {
+		point final;
+		bool* traite = malloc(sizeof(bool) * i.w * i.h);
+		for(int k = 0; k < i.w * i.h; k++) traite[k] = false;
+		if(bord == 0) final = find_next_border(get_pixel(i,x,y), p, p.x, p.y, i, traite, upper, lefter, nord_front);
+		else final = find_next_border(get_pixel(i,x,y), p, p.x, p.y, i, traite, upper , righter, nord_front);
+		free(traite);
+		return final;
+	}
 }
 
 
@@ -699,7 +718,10 @@ void start(){
 	interprete(i,0,0, 1, 0, s);
 	free(s);
 }
+
+
 int main() {
+	/*
     char filename[] = "example.ppm";
     image img = read_ppm(filename);
 	pixel p = get_pixel(img,0,0);
@@ -728,6 +750,7 @@ int main() {
 	p2.x = 0;
 	p2.y = 0;
 //	printf("\n %d test\n", is_better(img, p1, p2, nord_front, righter));
+
 	printf("\n sud font %d test\n", sud_front(img,p2));
 	free(traite);
 	
@@ -748,6 +771,15 @@ int main() {
 	}
 	
 	free(img.pixels);
-	//start();
+	*/
+	start();
+    char filename[] = "example.ppm";
+    image img = read_ppm(filename);
+	bool* traite = malloc(sizeof(bool) * img.w * img.h);
+	for(int k = 0; k < img.w * img.h; k++) traite[k] = false;
+	int test =	get_block_size(img,get_pixel(img,0,0), 0,0,traite);
+	printf("size : %d\n", test);
+	free(img.pixels);
+	free(traite);
     return 0;
 }
