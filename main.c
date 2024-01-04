@@ -419,6 +419,118 @@ point get_next_pixel_edge(image i, int x, int y, int direction, int bord, bool* 
 
 
 
+
+
+int get_pos(point p, image i){
+	int x = p.x;
+	int y = p.y;
+	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
+	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
+	return y * i.w + x; 
+}
+
+
+/*
+point find_point(image i, point start, bool (*compare)(point,point), int x, int y, bool* traite){
+	if(traite[get_pos(current,i)]) return start;
+	traite[get_pos(current,i)] = true;
+	point v1 = 
+
+}
+
+*/
+
+
+//comparison compare p1 * p2
+// ex if p1 upper than p2 then returns 1
+// if p1 same level as p2 then 0
+// else -1
+
+int lower(point p1, point p2){
+	if(p1.y > p2.y) return 1;
+	if(p1.y == p2.y) return 0;
+	else return -1;
+}
+
+int righter(point p1, point p2){
+	if(p1.x > p2.x) return 1;
+	if(p1.x == p2.x) return 0;
+	else return -1;
+}
+
+int upper(point p1, point p2){
+	if(p1.y < p2.y) return 1;
+	if(p1.y == p2.y) return 0;
+	else return -1;
+}
+int lefter(point p1, point p2){
+	if(p1.x < p2.x) return 1;
+	if(p1.x == p2.x) return 0;
+	else return -1;
+}
+
+bool est_front(image i, point pos){
+	pixel p1 = get_pixel(i,pos.x, pos.y);
+	pixel p2 = get_pixel(i,pos.x + 1, pos.y);
+	return !pixel_eq(p1,p2);
+}
+
+
+bool ouest_front(image i, point pos){
+	pixel p1 = get_pixel(i,pos.x, pos.y);
+	pixel p2 = get_pixel(i,pos.x - 1, pos.y);
+	return !pixel_eq(p1,p2);
+}
+
+bool nord_front(image i, point pos){
+	pixel p1 = get_pixel(i,pos.x, pos.y);
+	pixel p2 = get_pixel(i,pos.x, pos.y - 1);
+	return !pixel_eq(p1,p2);
+}
+bool sud_front(image i, point pos){
+	pixel p1 = get_pixel(i,pos.x, pos.y);
+	pixel p2 = get_pixel(i,pos.x, pos.y + 1);
+	return !pixel_eq(p1,p2);
+}
+
+// is p1 better than curr
+bool is_better(image i, point p1, point p2, bool (*front)(image,point),int (*compare1)(point,point), int (*compare2)(point,point)){
+	if(!front(i,p2)) return true;
+	if(!front(i,p1)) return false;
+	if(compare1(p1,p2) > 0) return true;
+	if(compare1(p1,p2) == 0) {
+		if(compare2(p1,p2) > 0) return true;
+		else return false;
+	}
+	return false;
+}
+
+point find_next_border( pixel init, point start, int x, int y,image i, bool* traite, int (*compare1)(point,point), int (*compare2)(point,point), bool (*front)(image,point)){
+	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
+	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h; 
+	point curr;
+	curr.x = x;
+	curr.y = y;
+	if(traite[get_pos(curr, i)]) return start;
+	printf("passing by %dth point, is front : %d\n", get_pos(curr, i), front(i,curr));
+	fflush(stdout);
+	traite[get_pos(curr, i)] = true;
+	pixel p = get_pixel(i,curr.x,curr.y);
+	if(pixel_eq(init,p)){
+		point p1 = find_next_border(init,start, x+1, y, i, traite, compare1, compare2, front);
+		point p2 = find_next_border(init,start, x-1, y, i, traite, compare1, compare2, front);
+		point p3 = find_next_border(init,start, x, y+1, i, traite, compare1, compare2, front);
+		point p4 = find_next_border(init,start, x, y-1, i, traite, compare1, compare2, front);
+		if(is_better(i,p1, curr, front, compare1,compare2)) curr= p1;
+		if(is_better(i,p2, curr, front, compare1,compare2)) curr= p2;
+		if(is_better(i,p3, curr, front, compare1,compare2)) curr= p3;
+		if(is_better(i, p4, curr, front, compare1,compare2)) curr= p4;
+		return curr;
+	}
+	return start;
+}
+
+
 point get_next_block(image i, int x, int y,int* bord, int* d, int count, bool has_turned){
 	bool* traite = calloc(i.h * i.w, sizeof(bool));
 	point ed = get_next_pixel_edge(i, x, y, *d, *bord,traite);
@@ -587,23 +699,6 @@ void start(){
 	interprete(i,0,0, 1, 0, s);
 	free(s);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int main() {
     char filename[] = "example.ppm";
     image img = read_ppm(filename);
@@ -622,9 +717,20 @@ int main() {
 	start.y = 0;
 	bool * traite = malloc(sizeof(bool) * img.w * img.h);
 	for(int j = 0; j < img.w * img.h; j++) traite[j] = false;
-	point highpoint = upedge_right(img, start, p, 0,0, traite);
-	free(traite);
+	//point highpoint = upedge_right(img, start, p, 0,0, traite);
+	point highpoint = find_next_border(p, start, 0, 0, img, traite, righter, upper, est_front);
+	
 
+	point p1;
+	point p2;
+	p1.x = 2;
+	p1.y = 0;
+	p2.x = 0;
+	p2.y = 0;
+//	printf("\n %d test\n", is_better(img, p1, p2, nord_front, righter));
+	printf("\n sud font %d test\n", sud_front(img,p2));
+	free(traite);
+	
 	SetTargetFPS(60);
 	while(true){
 	BeginDrawing();
