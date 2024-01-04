@@ -365,10 +365,9 @@ bool is_block_color(pixel p){
 
 
 int get_block_size(image i, pixel init, int x, int y, bool* traite) {
-    if (x < 0 || x >= i.w || y < 0 || y >= i.h || traite[i.w * y + x]) {
-        return 0;
-    }
-
+	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
+	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
+	if(traite[i.w * y + x] ) return 0;
     traite[i.w * y + x] = true;
     if (!pixel_eq(init, get_pixel(i, x, y))) {
         return 0;
@@ -550,7 +549,7 @@ point get_next_pixel_edge(image i, int x, int y, int direction, int bord, bool* 
 }
 
 
-point get_next_block(image i, int x, int y,int* bord, int* d, int count, bool has_turned){
+point get_next_block(image i, int x, int y,int* bord, int* d, int count, bool has_turned, bool* passeparpassant){
 	bool* traite = calloc(i.h * i.w, sizeof(bool));
 	point ed = get_next_pixel_edge(i, x, y, *d, *bord,traite);
 	free(traite);
@@ -586,7 +585,10 @@ point get_next_block(image i, int x, int y,int* bord, int* d, int count, bool ha
 		pp.x = x;
 		pp.y = y;
 		if(is_block_color(p)) return pp;
-		if(is_passante(p)) continue;
+		if(is_passante(p)) {
+			*passeparpassant = true;
+			continue;
+		}
 		else{
 			if(has_turned){
 				if(count == 8){
@@ -594,12 +596,12 @@ point get_next_block(image i, int x, int y,int* bord, int* d, int count, bool ha
 				}
 				else{
 					*d = (*d + 1) % 4;
-					return get_next_block(i, ox, oy, bord, d, count+1, false);
+					return get_next_block(i, ox, oy, bord, d, count+1, false, passeparpassant);
 				}
 			}
 			else{
 				*bord = (b + 2) % 4;
-				return get_next_block(i, ox, oy, bord, d, count, true);
+				return get_next_block(i, ox, oy, bord, d, count, true, passeparpassant);
 			}
 		}
 	}
@@ -694,15 +696,18 @@ void operate(image i,stack* s, int* dir, int* bo, point prev_block, point  curr_
 //1 tribord
 void interprete(image i, int x, int y, int dir, int bo, stack* s){
 	while(true){
-	printf("%d, %d\n", x, y);
+	printf("x: %d, y: %d, dir: %d, bord : %d\n", x, y, dir, bo);
 	fflush(stdout);
 	//x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
 	//y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
-	point next_block = get_next_block(i, x, y, &bo, &dir, 0, false);
+	bool passe_par_passant = false;
+	point next_block = get_next_block(i, x, y, &bo, &dir, 0, false, &passe_par_passant);
 	point curr;
 	curr.x = x;
 	curr.y = y;
+	if(!passe_par_passant){
 	operate(i, s, &dir, &bo, curr, next_block);
+	}
 	x = next_block.x;
 	y = next_block.y;
    }
@@ -772,7 +777,7 @@ int main() {
 	
 	free(img.pixels);
 	*/
-	start();
+//	start();
     char filename[] = "example.ppm";
     image img = read_ppm(filename);
 	bool* traite = malloc(sizeof(bool) * img.w * img.h);

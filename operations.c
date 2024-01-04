@@ -58,7 +58,10 @@ void plus_grand(stack* s){
 }
 
 int bord(stack* s, int b){
-	if(s->n < 1) return -1;
+	if(s->n < 1){
+		perror("not enough element for bord");
+		exit(2);
+	}
 	int bord = b;
 	for(int i = 0; i < pop(s); i++){
 		bord = 1 - bord;
