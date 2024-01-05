@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "stack.h"
-
+#include <stdio.h>
 
 stack* create_stack(){
 	stack* s = malloc(sizeof(stack));
@@ -20,9 +20,9 @@ void push(stack* s,int i){
 
 
 int pop(stack* s){
-	if(s->top == NULL){
-		while(true);
-		exit(7);
+	if(s->n < 1) {
+		perror("not enough elements to pop");
+		exit(1);
 	}
 	maillon* m = s->top;
 	s->top = m->next;

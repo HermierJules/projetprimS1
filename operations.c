@@ -110,11 +110,15 @@ void tourne(stack* s){
 
 void in_num(stack* s){
 	int n;
+	printf("input a number\n");
+	fflush(stdout);
 	read(STDIN_FILENO, &n, sizeof(int));
 	push(s,n);
 }
 void in_char(stack* s){
 	char n;
+	printf("input a char\n");
+	fflush(stdout);
 	read(STDIN_FILENO, &n, sizeof(char));
 	push(s,n);
 }
