@@ -41,6 +41,8 @@ void reste(stack* s){
 	if(s->n < 2) return;
 	int n1 = pop(s);
 	int n2 = pop(s);
+	printf("%d %d\n", n1,n2);
+	fflush(stdout);
 	push(s, n2%n1);
 }
 
