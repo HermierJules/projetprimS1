@@ -54,7 +54,7 @@ void plus_grand(stack* s){
 	if(s->n < 2) return;
 	int n1 = pop(s);
 	int n2 = pop(s);
-	push(s, n2 > n1 ? 1 : 0);
+	push(s, (n2 > n1) ? 1 : 0);
 }
 
 int bord(stack* s, int b){
@@ -114,7 +114,7 @@ void in_num(stack* s){
 	push(s,n);
 }
 void in_char(stack* s){
-	int n;
+	char n;
 	read(STDIN_FILENO, &n, sizeof(char));
 	push(s,n);
 }

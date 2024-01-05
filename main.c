@@ -139,220 +139,9 @@ int normalize(int x, int y, image i){
 
 
 
-point rightedge_up(image i, point start ,pixel init, int x, int y, bool* traite){
-	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
-	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h; 
-	traite[y * i.w + x] = 1;
-	point p = start;
-	if(pixel_eq(get_pixel(i, x, y), init)) {
-		if(!traite[normalize(x, y+1, i)]){
-			point v = rightedge_up(i, start ,init, x, y+1, traite);
-			if((p.x < v.x) || (p.x == v.x && p.y < v.y)) p = v;	
-		}
-		if(!traite[normalize(x, y-1, i)]){
-			point v =rightedge_up(i, start,init, x, y-1, traite);
-			if((p.x < v.x) || (p.x == v.x && p.y < v.y)) p = v;	
-		}
-		if(!traite[normalize(x+1, y, i)]){
-			point v =rightedge_up(i, start,init, x+1, y, traite);
-			if((p.x < v.x) || (p.x == v.x && p.y < v.y)) p = v;	
-		}
-		if(!traite[normalize(x-1, y, i)]){
-			point v =rightedge_up(i, start,init, x-1, y, traite);
-			if((p.x < v.x) || (p.x == v.x && p.y < v.y)) p = v;	
-		}
-	}
-	return p;
-}
-
-
-point rightedge_down(image i, point start ,pixel init, int x, int y, bool* traite){
-	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
-	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h; 
-	traite[y * i.w + x] = 1;
-	point p = start;
-	if(pixel_eq(get_pixel(i, x, y), init)) {
-		if(!traite[normalize(x, y+1, i)]){
-			point v = rightedge_down(i, start ,init, x, y+1, traite);
-			if((p.x < v.x) || (p.x == v.x && p.y > v.y)) p = v;	
-		}
-		if(!traite[normalize(x, y-1, i)]){
-			point v =rightedge_down(i, start,init, x, y-1, traite);
-			if((p.x < v.x) || (p.x == v.x && p.y > v.y)) p = v;	
-		}
-		if(!traite[normalize(x+1, y, i)]){
-			point v =rightedge_down(i, start,init, x+1, y, traite);
-			if((p.x < v.x) || (p.x == v.x && p.y > v.y)) p = v;	
-		}
-		if(!traite[normalize(x-1, y, i)]){
-			point v =rightedge_down(i, start,init, x-1, y, traite);
-			if((p.x < v.x) || (p.x == v.x && p.y > v.y)) p = v;	
-		}
-	}
-	return p;
-}
-
-
-
-point leftedge_up(image i, point start ,pixel init, int x, int y, bool* traite){
-	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
-	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h; 
-	traite[y * i.w + x] = 1;
-	point p = start;
-	if(pixel_eq(get_pixel(i, x, y), init)) {
-		if(!traite[normalize(x, y+1, i)]){
-			point v = leftedge_up(i, start ,init, x, y+1, traite);
-			if((p.x > v.x) || (p.x == v.x && p.y < v.y)) p = v;	
-		}
-		if(!traite[normalize(x, y-1, i)]){
-			point v = leftedge_up(i, start,init, x, y-1, traite);
-			if((p.x > v.x) || (p.x == v.x && p.y < v.y)) p = v;	
-		}
-		if(!traite[normalize(x+1, y, i)]){
-			point v =leftedge_up(i, start,init, x+1, y, traite);
-			if((p.x > v.x) || (p.x == v.x && p.y < v.y)) p = v;	
-		}
-		if(!traite[normalize(x-1, y, i)]){
-			point v =leftedge_up(i, start,init, x-1, y, traite);
-			if((p.x > v.x) || (p.x == v.x && p.y < v.y)) p = v;	
-		}
-	}
-	return p;
-}
-
-point leftedge_down(image i, point start ,pixel init, int x, int y, bool* traite){
-	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
-	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h; 
-	traite[y * i.w + x] = 1;
-	point p = start;
-	if(pixel_eq(get_pixel(i, x, y), init)) {
-		if(!traite[normalize(x, y+1, i)]){
-			point v = leftedge_down(i, start ,init, x, y+1, traite);
-			if((p.x > v.x) || (p.x == v.x && p.y > v.y)) p = v;	
-		}
-		if(!traite[normalize(x, y-1, i)]){
-			point v = leftedge_down(i, start,init, x, y-1, traite);
-			if((p.x > v.x) || (p.x == v.x && p.y > v.y)) p = v;	
-		}
-		if(!traite[normalize(x+1, y, i)]){
-			point v = leftedge_down(i, start,init, x+1, y, traite);
-			if((p.x > v.x) || (p.x == v.x && p.y > v.y)) p = v;	
-		}
-		if(!traite[normalize(x-1, y, i)]){
-			point v = leftedge_down(i, start,init, x-1, y, traite);
-			if((p.x > v.x) || (p.x == v.x && p.y > v.y)) p = v;	
-		}
-	}
-	return p;
-}
-
-point downedge_right(image i, point start ,pixel init, int x, int y, bool* traite){
-	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
-	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h; 
-	traite[y * i.w + x] = 1;
-	point p = start;
-	if(pixel_eq(get_pixel(i, x, y), init)) {
-		if(!traite[normalize(x, y+1, i)]){
-			point v = downedge_right(i, start ,init, x, y+1, traite);
-			if((p.y < v.y) || (p.y == v.y && p.x < v.x)) p = v;	
-		}
-		if(!traite[normalize(x, y-1, i)]){
-			point v =downedge_right(i, start,init, x, y-1, traite);
-			if((p.y < v.y) || (p.y == v.y && p.x < v.x)) p = v;	
-		}
-		if(!traite[normalize(x+1, y, i)]){
-			point v =downedge_right(i, start,init, x+1, y, traite);
-			if((p.y < v.y) || (p.y == v.y && p.x < v.x)) p = v;	
-		}
-		if(!traite[normalize(x-1, y, i)]){
-			point v =downedge_right(i, start,init, x-1, y, traite);
-			if((p.y < v.y) || (p.y == v.y && p.x < v.x)) p = v;	
-		}
-	}
-	return p;
-}
-
-point downedge_left(image i, point start ,pixel init, int x, int y, bool* traite){
-	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
-	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h; 
-	traite[y * i.w + x] = 1;
-	point p = start;
-	if(pixel_eq(get_pixel(i, x, y), init)) {
-		if(!traite[normalize(x, y+1, i)]){
-			point v = downedge_left(i, start ,init, x, y+1, traite);
-			if((p.y < v.y) || (p.y == v.y && p.x > v.x)) p = v;	
-		}
-		if(!traite[normalize(x, y-1, i)]){
-			point v =downedge_left(i, start,init, x, y-1, traite);
-			if((p.y < v.y) || (p.y == v.y && p.x > v.x)) p = v;	
-		}
-		if(!traite[normalize(x+1, y, i)]){
-			point v =downedge_left(i, start,init, x+1, y, traite);
-			if((p.y < v.y) || (p.y == v.y && p.x > v.x)) p = v;	
-		}
-		if(!traite[normalize(x-1, y, i)]){
-			point v =downedge_left(i, start,init, x-1, y, traite);
-			if((p.y < v.y) || (p.y == v.y && p.x > v.x)) p = v;	
-		}
-	}
-	return p;
-}
-
-point upedge_left(image i, point start ,pixel init, int x, int y, bool* traite){
-	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
-	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h; 
-	traite[y * i.w + x] = 1;
-	point p = start;
-	if(pixel_eq(get_pixel(i, x, y), init)) {
-		if(!traite[normalize(x, y+1, i)]){
-			point v = upedge_left(i, start ,init, x, y+1, traite);
-			if((p.y > v.y) || (p.y == v.y && p.x > v.x)) p = v;	
-		}
-		if(!traite[normalize(x, y-1, i)]){
-			point v =upedge_left(i, start,init, x, y-1, traite);
-			if((p.y > v.y) || (p.y == v.y && p.x > v.x)) p = v;	
-		}
-		if(!traite[normalize(x+1, y, i)]){
-			point v =upedge_left(i, start,init, x+1, y, traite);
-			if((p.y > v.y) || (p.y == v.y && p.x > v.x)) p = v;	
-		}
-		if(!traite[normalize(x-1, y, i)]){
-			point v =upedge_left(i, start,init, x-1, y, traite);
-			if((p.y > v.y) || (p.y == v.y && p.x > v.x)) p = v;	
-		}
-	}
-	return p;
-}
-
-point upedge_right(image i, point start ,pixel init, int x, int y, bool* traite){
-	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
-	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h; 
-	traite[y * i.w + x] = true;
-	point p = start;
-	if(pixel_eq(get_pixel(i, x, y), init)) {
-		if(!traite[normalize(x, y+1, i)]){
-			point v = upedge_right(i, start ,init, x, y+1, traite);
-			if((p.y > v.y) || (p.y == v.y && p.x < v.x)) p = v;	
-		}
-		if(!traite[normalize(x, y-1, i)]){
-			point v =upedge_right(i, start,init, x, y-1, traite);
-			if((p.y > v.y) || (p.y == v.y && p.x < v.x)) p = v;	
-		}
-		if(!traite[normalize(x+1, y, i)]){
-			point v =upedge_right(i, start,init, x+1, y, traite);
-			if((p.y > v.y) || (p.y == v.y && p.x < v.x)) p = v;	
-		}
-		if(!traite[normalize(x-1, y, i)]){
-			point v =upedge_right(i, start,init, x-1, y, traite);
-			if((p.y > v.y) || (p.y == v.y && p.x < v.x)) p = v;	
-		}
-	}
-	printf("my best point is %d %d\n", p.x, normalize(x,y,i));
-	return p;
-}
 
 bool is_passante(pixel p){
-	return p.r * 0.202 + 0.707 * p.g + 0.071 * p.b >= 128. ;
+	return (p.r * 0.202 + 0.707 * p.g + 0.071 * p.b) >= 128. ;
 }
 
 bool is_block_color(pixel p){
@@ -506,7 +295,7 @@ point find_next_border( pixel init, point start, int x, int y,image i, bool* tra
 	return start;
 }
 
-point get_next_pixel_edge(image i, int x, int y, int direction, int bord, bool* traite){
+point get_next_pixel_edge(image i, int x, int y, int direction, int bord){
 	point p;
 	p.x = x;
 	p.y = y;
@@ -549,13 +338,11 @@ point get_next_pixel_edge(image i, int x, int y, int direction, int bord, bool* 
 }
 
 
-point get_next_block(image i, int x, int y,int* bord, int* d, int count, bool has_turned, bool* passeparpassant){
-	bool* traite = calloc(i.h * i.w, sizeof(bool));
-	point ed = get_next_pixel_edge(i, x, y, *d, *bord,traite);
-	free(traite);
+point get_next_block(image i, int x, int y,int* bo, int* d, int count, bool has_turned, bool* passeparpassant){
+	point ed = get_next_pixel_edge(i, x, y, *d, *bo);
 	x = ed.x;
 	y = ed.y;
-	int b = *bord;
+	int b = *bo;
 	int direction = *d;
 	int ox = x;
 	int oy = y;
@@ -586,22 +373,24 @@ point get_next_block(image i, int x, int y,int* bord, int* d, int count, bool ha
 		pp.y = y;
 		if(is_block_color(p)) return pp;
 		if(is_passante(p)) {
+			count = 0;
 			*passeparpassant = true;
 			continue;
 		}
 		else{
 			if(has_turned){
 				if(count == 8){
+					perror("couldn't find next block");
 					exit(2);	
 				}
 				else{
 					*d = (*d + 1) % 4;
-					return get_next_block(i, ox, oy, bord, d, count+1, false, passeparpassant);
+					return get_next_block(i, ox, oy, bo, d, count+1, false, passeparpassant);
 				}
 			}
 			else{
-				*bord = (b + 2) % 4;
-				return get_next_block(i, ox, oy, bord, d, count, true, passeparpassant);
+				*bo = 1 - b;
+				return get_next_block(i, ox, oy, bo, d, count, true, passeparpassant);
 			}
 		}
 	}
@@ -633,15 +422,25 @@ int associate_lum(int c) {
 	return -1; 
 }
 
+//going from i1 to i2
+int calculate_cran(int i1, int i2){
+	if(i2 >= i1) {
+		return i2 - i1;
+	}
+	return 5 - (i1 - i2) + 1;
+}
+
+
 void operate(image i,stack* s, int* dir, int* bo, point prev_block, point  curr_block){
 	int prev = rgbtohtml(get_pixel(i, prev_block.x, prev_block.y));
 	int curr = rgbtohtml(get_pixel(i, curr_block.x, curr_block.y));
 	int c1 = associate_col(prev);
 	int c2 = associate_col(curr);
-	int cran = (c1 - c2 < 0) ? c2 - c1 : c1 - c2;
+	int cran = calculate_cran(c1,c2);
 	int l1 = associate_lum(prev);
 	int l2 = associate_lum(curr);
 	int diff_lum = (l1 - l2 < 0) ? l2 - l1 : l1 - l2;
+	//printf("diff lum : %d, cran :%d\n", diff_lum, cran);
 	if(cran == 0){
 		if(diff_lum == 1){
 			bool* traite = malloc(i.w * i.h *sizeof(bool));
@@ -696,12 +495,12 @@ void operate(image i,stack* s, int* dir, int* bo, point prev_block, point  curr_
 //1 tribord
 void interprete(image i, int x, int y, int dir, int bo, stack* s){
 	while(true){
-	printf("x: %d, y: %d, dir: %d, bord : %d\n", x, y, dir, bo);
 	fflush(stdout);
 	//x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
 	//y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
 	bool passe_par_passant = false;
 	point next_block = get_next_block(i, x, y, &bo, &dir, 0, false, &passe_par_passant);
+//	printf("%d, %d -> %d %d, dir: %d, bord : %d\n", x, y,next_block.x, next_block.y, dir, bo);
 	point curr;
 	curr.x = x;
 	curr.y = y;
@@ -726,15 +525,16 @@ void start(){
 
 
 int main() {
-	/*
+/*	
     char filename[] = "example.ppm";
     image img = read_ppm(filename);
+	printf("w: %d, h : %d", img.w, img.h);
+	fflush(stdout);
 	pixel p = get_pixel(img,0,0);
 	printf("r: %d, g : %d , b : %d\n", p.r, p.g, p.b);
-	printf("w: %d, h : %d", img.w, img.h);
 	//printf("r: %d, g: %d, b: %d", p.r, p.g, p.b);
 	Color c = (Color){p.r, p.g, p.b, 255};
-	int scale = 30;	
+	int scale = 10;	
 	const int screenWidth = img.w * scale;
 	const int screenHeight = img.h * scale;
 	InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
@@ -776,15 +576,17 @@ int main() {
 	}
 	
 	free(img.pixels);
-	*/
-//	start();
+*/	
+    start();
+	
     char filename[] = "example.ppm";
     image img = read_ppm(filename);
+	/*
 	bool* traite = malloc(sizeof(bool) * img.w * img.h);
 	for(int k = 0; k < img.w * img.h; k++) traite[k] = false;
 	int test =	get_block_size(img,get_pixel(img,0,0), 0,0,traite);
-	printf("size : %d\n", test);
+	printf("size : %d\n", test);*/
 	free(img.pixels);
-	free(traite);
+	//free(traite);
     return 0;
 }
