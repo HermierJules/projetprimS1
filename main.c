@@ -513,7 +513,7 @@ void operate(image i,stack* s, int* dir, int* bo, point prev_block, point  curr_
 	int cran = calculate_cran(c1,c2);
 	int l1 = associate_lum(prev);
 	int l2 = associate_lum(curr);
-	int diff_lum = (l1 - l2 < 0) ? l2 - l1 : l1 - l2;
+	int diff_lum = calculate_lum_diff(l1, l2);
 	printf("cran: %d, diff_lum: %d operation : ", cran, diff_lum);
 //	printf("diff lum : %d, cran :%d\n", diff_lum, cran);
 	if(cran == 0){
@@ -522,87 +522,87 @@ void operate(image i,stack* s, int* dir, int* bo, point prev_block, point  curr_
 			exit(4);
 		}
 		if(diff_lum == 1){
-		//	printf("empile");
+			printf("empile");
 			bool* traite = malloc(i.w * i.h *sizeof(bool));
 			for(int j = 0; j < i.w * i.h; j++) traite[j] = false;
 			int size = get_block_size(i, get_pixel(i,prev_block.x,prev_block.y), prev_block.x,prev_block.y, traite);
 			free(traite);
 			push(s,size);
 		}
-	//	if(diff_lum == 2) printf("pop");
+		if(diff_lum == 2) printf("pop");
 		if(diff_lum == 2 && s->n > 0){
 			pop(s);
 		}
 	}
 	if(cran == 1){
 		if(diff_lum == 0) {
-	//		printf("plus");
+			printf("plus");
 			plus(s);
 		}
 		if(diff_lum == 1){
-	//		printf("moins");
+			printf("moins");
 			moins(s);
 		}
 		if(diff_lum == 2){
-	//		printf("fois");
+			printf("fois");
 			fois(s);
 		}
 	}
 	if(cran == 2){
 		if(diff_lum == 0){
-	//		printf("divise");
+			printf("divise");
 			divise(s);
 		}
 		if(diff_lum == 1){
-	//		printf("reste");
+			printf("reste");
 			reste(s);
 		}
 		if(diff_lum == 2){
-	//		printf("non");
+			printf("non");
 			non(s);
 		}
 	}
 	if(cran == 3){
 		if(diff_lum == 0) {
-	//		printf("plusgrand");
+			printf("plusgrand");
 			plus_grand(s);
 		}
 		if(diff_lum == 1) {
-	//		printf("drection");
+			printf("drection");
 			int new_d = direction(s, *dir);
 			*dir = new_d;
 		}
 		if(diff_lum == 2){
-	//		printf("bord");
+			printf("bord");
 			int new_b = bord(s, *bo);
 			*bo = new_b;
 		}
 	}
 	if(cran == 4){
 		if(diff_lum == 0) {
-	//		printf("duplique");
+			printf("duplique");
 			duplique(s);
 		}
 		if(diff_lum == 1){
-	//		printf("tourne");
+			printf("tourne");
 			tourne(s);
 		}
 		if(diff_lum == 2){
-	//		printf("in-num");
+			printf("in-num");
 			in_num(s);
 		}
 	}
 	if(cran == 5){
 		if(diff_lum == 0) {
-	//		printf("in-char");
+			printf("in-char");
 			in_char(s); 
 		}
 		if(diff_lum == 1){
-	//		printf("out-num");
+			printf("out-num");
 			out_num(s);
 		}
 		if(diff_lum == 2){
-	//		printf("outchar");
+			printf("outchar");
 			out_char(s);
 		}
 	}
@@ -625,7 +625,7 @@ void interprete(image i, int x, int y, int dir, int bo, stack* s){
 	curr.x = x;
 	curr.y = y;
 	fflush(stdout);	
-	//printf("\nbord: %d, direction :%d, color: %#08x", bo, dir, rgbtohtml(get_pixel(i,curr.x,curr.y)));
+	printf("\nbord: %d, direction :%d, color: %#08x", bo, dir, rgbtohtml(get_pixel(i,curr.x,curr.y)));
 	int scale = 30;
 	fflush(stdout);
 	bool check = true;
