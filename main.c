@@ -337,7 +337,7 @@ point get_next_pixel_edge(image i, int x, int y, int direction, int bord){
 	}
 }
 
-
+/*
 point get_next_block(image i, int x, int y,int* bo, int* d, int count, bool has_turned, bool* passeparpassant){
 	point ed = get_next_pixel_edge(i, x, y, *d, *bo);
 	x = ed.x;
@@ -394,7 +394,9 @@ point get_next_block(image i, int x, int y,int* bo, int* d, int count, bool has_
 			}
 		}
 	}
-}
+}*/
+
+
 
 //0 red
 //1 yellow
@@ -427,10 +429,78 @@ int calculate_cran(int i1, int i2){
 	if(i2 >= i1) {
 		return i2 - i1;
 	}
-	return 5 - (i1 - i2) + 1;
+	return 6 - (i1 - i2);
 }
 
+int calculate_lum_diff(int i1, int i2){
+	if(i2 >= i1) {
+		return i2 - i1;
+	}
+	return 3 - (i1 - i2);
 
+}
+
+point get_next_block(image i, int x, int y,int* bo, int* d, int count, bool has_turned, bool* passeparpassant){
+	bool* traite = malloc(sizeof(bool) * i.w * i.h);
+	for(int k = 0 ; k < i.w * i.h ; k++) traite[k] = false;
+	point ed = get_next_pixel_edge(i, x, y, *d, *bo);
+	free(traite);
+	int dir = *d;
+	int dx;
+	int dy;
+	if(dir == 0){
+		dx = 0;
+		dy = -1;
+	}
+	if(dir == 1){
+		dx = 1;
+		dy = 0;
+	}
+	if(dir == 2){
+		dx = 0;
+		dy = 1;
+	}
+	if(dir == 3){
+		dx = -1;
+		dy = 0;
+	}
+	point pos;
+	pos.x = ed.x + dx;
+	pos.y = ed.y + dy;
+	pixel p = get_pixel(i, pos.x, pos.y);
+	if(associate_col(rgbtohtml(p)) >= 0) return pos;
+	else if(!is_passante(p)) {
+		if(has_turned){
+			if(count == 8){
+				perror("couldn't find the next block");
+				exit(0);
+			}
+			//tester en changeant le bord
+			*d = (*d + 1) % 4;
+			*bo = 1 - *bo;
+			return get_next_block(i,x,y, bo, d, count+1, false, passeparpassant);
+		}
+		else {
+			*bo = 1 - *bo;
+			return get_next_block(i,x,y,bo,d, count, true, passeparpassant);
+		}
+	}
+	else {
+		//couleur passante 
+		while(is_passante(p)){
+			pos.x = pos.x + dx;
+			pos.y = pos.y + dy;
+			p = get_pixel(i, pos.x, pos.y);
+		}
+		if(associate_col(rgbtohtml(p) >= 0)) return pos;
+		else {
+			pos.x = pos.x - dx;
+			pos.y = pos.y - dy;
+			*bo = 1 - *bo;
+			return get_next_block(i, pos.x, pos.y, bo, d, 0, true, passeparpassant);
+		}
+	}
+}
 void operate(image i,stack* s, int* dir, int* bo, point prev_block, point  curr_block){
 	int prev = rgbtohtml(get_pixel(i, prev_block.x, prev_block.y));
 	int curr = rgbtohtml(get_pixel(i, curr_block.x, curr_block.y));
@@ -440,7 +510,7 @@ void operate(image i,stack* s, int* dir, int* bo, point prev_block, point  curr_
 	int l1 = associate_lum(prev);
 	int l2 = associate_lum(curr);
 	int diff_lum = (l1 - l2 < 0) ? l2 - l1 : l1 - l2;
-	//printf("diff lum : %d, cran :%d\n", diff_lum, cran);
+	printf("diff lum : %d, cran :%d\n", diff_lum, cran);
 	if(cran == 0){
 		if(diff_lum == 1){
 			bool* traite = malloc(i.w * i.h *sizeof(bool));
@@ -500,7 +570,7 @@ void interprete(image i, int x, int y, int dir, int bo, stack* s){
 	//y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
 	bool passe_par_passant = false;
 	point next_block = get_next_block(i, x, y, &bo, &dir, 0, false, &passe_par_passant);
-//	printf("%d, %d -> %d %d, dir: %d, bord : %d\n", x, y,next_block.x, next_block.y, dir, bo);
+	printf("%d, %d -> %d %d, dir: %d, bord : %d\n", x, y,next_block.x, next_block.y, dir, bo);
 	point curr;
 	curr.x = x;
 	curr.y = y;
@@ -525,7 +595,7 @@ void start(){
 
 
 int main() {
-/*	
+
     char filename[] = "example.ppm";
     image img = read_ppm(filename);
 	printf("w: %d, h : %d", img.w, img.h);
@@ -534,7 +604,7 @@ int main() {
 	printf("r: %d, g : %d , b : %d\n", p.r, p.g, p.b);
 	//printf("r: %d, g: %d, b: %d", p.r, p.g, p.b);
 	Color c = (Color){p.r, p.g, p.b, 255};
-	int scale = 10;	
+	int scale = 20;	
 	const int screenWidth = img.w * scale;
 	const int screenHeight = img.h * scale;
 	InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
@@ -545,7 +615,11 @@ int main() {
 	bool * traite = malloc(sizeof(bool) * img.w * img.h);
 	for(int j = 0; j < img.w * img.h; j++) traite[j] = false;
 	//point highpoint = upedge_right(img, start, p, 0,0, traite);
-	point highpoint = find_next_border(p, start, 0, 0, img, traite, righter, upper, est_front);
+	//point highpoint = get_next_pixel_edge(img, 0, 0, 1, 0);
+	int bo = 0;
+	int d = 1;
+	printf("color %d\n\n", associate_lum(rgbtohtml(get_pixel(img,2,2))));
+	point highpoint = get_next_block(img, 0, 0, &bo, &d, 0, false, NULL);
 	
 
 	point p1;
@@ -576,11 +650,10 @@ int main() {
 	}
 	
 	free(img.pixels);
-*/	
-    start();
+
+	//printf("%d\n\n",calculate_lum_diff(associate_lum(darkblue), associate_lum(blue)));
+   // start();
 	
-    char filename[] = "example.ppm";
-    image img = read_ppm(filename);
 	/*
 	bool* traite = malloc(sizeof(bool) * img.w * img.h);
 	for(int k = 0; k < img.w * img.h; k++) traite[k] = false;
