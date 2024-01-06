@@ -22,4 +22,6 @@ void push(stack* s, int i);
 
 int pop(stack* s);
 
+void print_stack(stack* s);
+
 void free_stack(stack* s);

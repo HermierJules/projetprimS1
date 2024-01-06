@@ -11,6 +11,7 @@ void moins(stack* s){
 	if(s->n < 2) return;
 	int n1 = pop(s);
 	int n2 = pop(s);
+//	printf(" empile %d (%d - %d)", n2 - n1,n2,n1);
 	push(s, n2 - n1);
 }
 
@@ -18,6 +19,7 @@ void plus(stack* s){
 	if(s->n < 2) return;
 	int n1 = pop(s);
 	int n2 = pop(s);
+//	printf("empile %d ", n1 + n2);
 	push(s, n1 + n2);
 }
 
@@ -41,7 +43,7 @@ void reste(stack* s){
 	if(s->n < 2) return;
 	int n1 = pop(s);
 	int n2 = pop(s);
-	printf("%d %d\n", n1,n2);
+//	printf("%d %d\n", n1,n2);
 	fflush(stdout);
 	push(s, n2%n1);
 }
@@ -56,6 +58,7 @@ void plus_grand(stack* s){
 	if(s->n < 2) return;
 	int n1 = pop(s);
 	int n2 = pop(s);
+//	printf(" %d > %d", n2, n1);
 	push(s, (n2 > n1) ? 1 : 0);
 }
 
@@ -73,8 +76,11 @@ void bord(stack* s, int* b){
 void direction(stack* s, int* d){
 	if(s->n < 1) return;
 	int k = pop(s);
+//	printf(" turning by %d ", k);
+	k = (k < 0) ? (-1 * k) : k;
 	*d = (*d + k) % 4;
-	while(*d < 0) *d = *d + 4; 
+	//*d = (*d + k) % 4;
+	//while(*d < 0) *d = *d + 4; 
 }
 
 void duplique(stack* s){

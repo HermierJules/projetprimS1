@@ -23,6 +23,7 @@ int rgbtohtml(int r, int g, int b){
 	return (r << 16) | (g << 8) | b;
 }
 
+
 const int lightred = 0xFF8080;
 const int red = 0xFF0000;
 const int darkred = 0x800000;
@@ -48,6 +49,33 @@ const int magenta = 0xFF00FF;
 const int darkmagenta = 0x800080;
 
 int colortab[] = {lightred, red, darkred, lightyellow, yellow, darkyellow, lightgreen, green, darkgreen, lightcyan, cyan, darkcyan, lightblue, blue, darkblue, lightmagenta, magenta, darkmagenta};
+
+
+bool is_codante(int v){
+	for(int k = 0; k < 18; k++){
+		if(colortab[k] == v) return true;
+	}
+	return false;
+}
+
+int associate_lum(int c) {
+	if (c == lightred || c == lightyellow || c == lightgreen || c == lightcyan || c == lightblue || c == lightmagenta) return 0;
+	if (c == red || c == yellow || c == green || c == cyan || c == blue || c == magenta) return 1;
+	if (c == darkred || c == darkyellow || c == darkgreen || c == darkcyan || c == darkblue || c == darkmagenta) return 2;
+	return -1; 
+}
+
+
+int associate_col(int c) {
+	//peut aussi être coder en parcourant colortab 3 par 3
+	if (c == lightred || c == red || c == darkred) return 0;
+	else if (c == lightyellow || c == yellow || c == darkyellow) return 1;
+	else if (c == lightgreen || c == green || c == darkgreen) return 2;
+	else if (c == lightcyan || c == cyan || c == darkcyan) return 3;
+	else if (c == lightblue || c == blue || c == darkblue) return 4;
+	else if (c == lightmagenta || c == magenta || c == darkmagenta) return 5;
+	return -1; 
+}
 
 image read_ppm(char* filename) {
     FILE* fp = fopen(filename, "r");
@@ -217,11 +245,14 @@ bool is_better(image i, point p1, point p2, bool (*front)(image,point),int (*com
 }
 
 point find_next_border(image i, point start, int x, int y, bool* traite, int (*compare1)(point,point), int (*compare2)(point,point), bool (*front)(image,point)){
+	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
+	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
 	point curr;
 	curr.x = x;
 	curr.y = y;
 	if(traite[i.w * y + x]) return start;
 	traite[i.w * y + x] = true;
+	fflush(stdout);
 	int p = get_pixel(i,curr);
 	int init = get_pixel(i, start);
 	if(p == init){
@@ -286,11 +317,324 @@ point find_next_edge(image i, point pos,int bord, int dir){
 	return p;
 }
 
+int get_dx(int dir){
+	if(dir == 0) return 1;
+	if(dir == 2) return -1;
+	return 0;
+}
+int get_dy(int dir){
+	if(dir == 1) return 1;
+	if(dir == 3) return -1;
+	return 0;
+}
 
 
+point normalize_point(image i, point p){
+	int x = p.x;
+	int y = p.y;
+	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
+	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
+	p.x = x;
+	p.y = y;
+	return p;
+}
+
+point get_next_block(image i, point start, int* dir, int* bo,int count, bool has_turned, bool* passant, bool* finished){
+	start = normalize_point(i, start);
+	point edge = find_next_edge(i, start, *bo, *dir);
+	edge = normalize_point(i, edge);
+	int dx = get_dx(*dir);
+	int dy = get_dy(*dir);
+	point pos;
+	pos.x = edge.x + dx;
+	pos.y = edge.y + dy;
+	if(is_codante(get_pixel(i,pos))) return pos;
+	if(!is_passante(get_pixel(i,pos))){
+			//cas bloquant
+			if(!has_turned){
+				*bo = 1 - *bo;
+				return get_next_block(i, start, dir, bo, count, true, passant, finished);
+			}
+			else {
+				if(count == 8){
+					*finished = true;
+					return start;
+				}
+				*dir = (*dir + 1) % 4;
+				return get_next_block(i, start, dir, bo, count + 1, false, passant, finished);
+			}
+	}
+	else {
+		*passant = true;
+		//cas couleur passante
+		while(is_passante(get_pixel(i, pos)) && !is_codante(get_pixel(i,pos))){
+			//tant que passante et non codante on avance
+			pos.x = pos.x + dx;
+			pos.y = pos.y + dy; 
+		}
+		if(is_codante(get_pixel(i,pos))) return pos;
+		else{
+			pos.x = pos.x - dx;
+			pos.y = pos.y - dy;
+			return get_next_block(i, pos, dir, bo, 0, false, passant, finished);
+		}
+	
+	}
+}
+
+
+//TODO CHECK
+
+//going from i1 to i2
+int calculate_cran(int i1, int i2){
+	if(i2 >= i1) {
+		return i2 - i1;
+	}
+	return 6 - (i1 - i2);
+}
+
+int calculate_lum_diff(int i1, int i2){
+	if(i2 >= i1) {
+		return i2 - i1;
+	}
+	return 3 - (i1 - i2);
+
+}
+
+
+
+
+void operate_debug(point prev_pos,image i, int prev_col, int next_col, int* dir, int* bo, stack* s){
+	int c1 = associate_col(prev_col);
+	int c2 = associate_col(next_col);
+	int l1 = associate_lum(prev_col);
+	int l2 = associate_lum(next_col);
+
+	int cran = calculate_cran(c1, c2);
+	int diff_lum = calculate_lum_diff(l1, l2);
+	printf("cran: %d, diff_lum: %d, operation: ", cran, diff_lum);
+	if(cran == 0){
+		if(diff_lum == 1){
+			printf("empile");
+			bool* traite = malloc(sizeof(bool) * i.w * i.h);
+			for(int j = 0; j < i.w * i.h; j++) traite[j] = false;
+			int k = get_block_size(i, prev_col, prev_pos.x, prev_pos.y, traite);
+			push(s, k);
+			free(traite);	
+		}
+		if(diff_lum == 2 && s->n > 0){
+			printf("depile");
+			pop(s);
+		}
+	}
+	if(cran == 1){
+		if(diff_lum == 0) {
+			printf("plus");
+			plus(s);
+		}
+		if(diff_lum == 1){
+			printf("moins");
+			moins(s);
+		}
+		if(diff_lum == 2){
+			printf("fois");
+			fois(s);
+		}
+	}
+	if(cran == 2){
+		if(diff_lum == 0){
+			printf("divise");
+			divise(s);
+		}
+		if(diff_lum == 1){
+			printf("reste");
+			reste(s);
+		}
+		if(diff_lum == 2){
+			printf("non");
+				non(s);
+		}
+	}
+	if(cran == 3){
+		if(diff_lum == 0){
+			printf("plus grand");
+			plus_grand(s);
+		}
+		if(diff_lum == 1){
+			printf("direction");
+			direction(s, dir);
+			printf("nouvelle dir %d", *dir);
+		}
+		if(diff_lum == 2){
+			printf("bord");
+			bord(s, bo);
+		}
+	}
+	if(cran == 4){
+		if(diff_lum == 0) {
+			printf("duplique");
+			duplique(s);
+		}
+		if(diff_lum == 1){
+			printf("tourne");
+			tourne(s);
+		}
+		if(diff_lum == 2){
+			printf("in num");
+			in_num(s);
+		}
+	}
+	if(cran == 5){
+		if(diff_lum == 0){
+			printf("in char");
+			in_char(s);
+		}
+		if(diff_lum == 1){
+			printf("out_num");
+			out_num(s);
+		}
+		if(diff_lum == 2){
+			printf("out char");
+			out_char(s);
+		}
+	}
+}
+
+void operate(point prev_pos,image i, int prev_col, int next_col, int* dir, int* bo, stack* s){
+	int c1 = associate_col(prev_col);
+	int c2 = associate_col(next_col);
+	int l1 = associate_lum(prev_col);
+	int l2 = associate_lum(next_col);
+
+	int cran = calculate_cran(c1, c2);
+	int diff_lum = calculate_lum_diff(l1, l2);
+	
+	if(cran == 0){
+		if(diff_lum == 1){
+			bool* traite = malloc(sizeof(bool) * i.w * i.h);
+			for(int j = 0; j < i.w * i.h; j++) traite[j] = false;
+			int k = get_block_size(i, prev_col, prev_pos.x, prev_pos.y, traite);
+			push(s, k);
+			free(traite);	
+		}
+		if(diff_lum == 2 && s->n > 0) pop(s);
+	}
+	if(cran == 1){
+		if(diff_lum == 0) plus(s);
+		if(diff_lum == 1) moins(s);
+		if(diff_lum == 2) fois(s);
+	}
+	if(cran == 2){
+		if(diff_lum == 0) divise(s);
+		if(diff_lum == 1) reste(s);
+		if(diff_lum == 2) non(s);
+	}
+	if(cran == 3){
+		if(diff_lum == 0) plus_grand(s);
+		if(diff_lum == 1) direction(s, dir);
+		if(diff_lum == 2) bord(s, bo);
+	}
+	if(cran == 4){
+		if(diff_lum == 0) duplique(s);
+		if(diff_lum == 1) tourne(s);
+		if(diff_lum == 2) in_num(s);
+	}
+	if(cran == 5){
+		if(diff_lum == 0) in_char(s);
+		if(diff_lum == 1) out_num(s);
+		if(diff_lum == 2) out_char(s);
+	}
+}
+
+
+
+void draw_image_and_highlight(image i, point p, int scale){
+	bool check = true;
+	while(check){
+		check = false;
+	//	check = !IsKeyPressed(KEY_RIGHT);
+		BeginDrawing();
+		ClearBackground(RAYWHITE);
+		for(int x = 0; x < i.w; x++){
+			for(int y = 0; y < i.h; y++){
+				int c = get_pixel_coord(i,x,y);
+				if(is_codante(c)){
+					int r = c >> 16;
+					int g = (c - (r << 16)) >> 8;
+					int b = (c - (r << 16) - (g << 8));
+					Color col = (Color){r,g,b, 255};
+					DrawRectangle(x * scale, y * scale, scale, scale, col);
+				}
+			else if(is_passante(c)){
+					DrawRectangle(x * scale, y * scale, scale, scale, RAYWHITE);
+				}
+				else {
+					DrawRectangle(x * scale, y * scale, scale, scale, BLACK);
+
+				}
+			}
+		}
+		Color col = (Color){GetRandomValue(0, 250), GetRandomValue(50, 250), GetRandomValue(10, 200), 255 };
+		DrawRectangle(p.x * scale, p.y * scale, scale, scale, col);
+		EndDrawing();
+
+	}
+}
+
+void interprete(int scale, image i){
+	stack* s = create_stack();
+	point pos;
+	pos.x = 0;
+	pos.y = 0;
+	int bo = 0;
+	int dir = 0;
+	bool finished = false;
+	while(true){
+
+	//	printf("\nx: %d, y: %d, bord: %d, dir : %d", pos.x, pos.y, bo, dir);
+		draw_image_and_highlight(i, pos, scale);
+		bool passant = false;
+		point next_block = get_next_block(i, pos, &dir, &bo, 0, false, &passant, &finished);
+		if(finished) break;
+		if(!passant){
+			operate(pos, i, get_pixel(i, pos), get_pixel(i, next_block), &dir, &bo, s);
+		//	operate_debug(pos, i, get_pixel(i, pos), get_pixel(i, next_block), &dir, &bo, s);
+		}
+		else {
+			//printf("passé par passant, nothing");
+		}
+		pos.x = next_block.x;
+		pos.y = next_block.y;
+//		print_stack(s);
+	}
+	free(s);
+}
+
+
+void start(){
+	image i = read_ppm("input.ppm");
+	int scale = 30;
+	const int screenWidth = i.w * scale;
+	const int screenHeight = i.h * scale;
+	printf("%d %d", i.w, screenHeight); 
+	InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
+	SetTargetFPS(60);
+	interprete(scale, i);
+	free(i.pixels);
+}
 
 
 int main(){
-	is_passante(rgbtohtml(55,44,22));
+start();
+
+	image i = read_ppm("input.ppm");
+	point pos;
+	pos.x = 0; pos .y = 0;
+	point p = find_next_edge(i, pos, 0,0);
+	int x = 2;
+	int y = 13;
+	int col = get_pixel_coord(i,x,y);
+	printf("associate_col %#08x is_passante: %d \n", col, is_passante(col) );
+	free(i.pixels);
 	return 0;
 }

@@ -36,6 +36,21 @@ bool is_stack_empty(stack* s){
 	return s->top == NULL;
 }
 
+void print_stack(stack* s){
+	printf("\n");
+	stack* s2 = create_stack();
+	while(s->n > 0){
+		int k = pop(s);
+		printf("|%d ", k);
+		push(s2, k);
+	}
+	while(s2->n > 0){
+		int k = pop(s2);
+		push(s,k);
+	}
+	printf("\n");
+}
+
 void free_stack(stack* s){
 	while(s->top != NULL){
 		pop(s);
