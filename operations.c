@@ -110,7 +110,7 @@ void tourne(stack* s){
 		for(int j = 1; j < d; j++){
 			push(s, pop(s2));
 		}
-		free(s2);
+		free_stack(s2);
 
 	}
 }

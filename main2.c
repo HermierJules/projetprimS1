@@ -592,7 +592,7 @@ void interprete(int scale, image i){
 	while(true){
 
 	//	printf("\nx: %d, y: %d, bord: %d, dir : %d", pos.x, pos.y, bo, dir);
-		draw_image_and_highlight(i, pos, scale);
+	//	draw_image_and_highlight(i, pos, scale);
 		bool passant = false;
 		point next_block = get_next_block(i, pos, &dir, &bo, 0, false, &passant, &finished);
 		if(finished) break;
@@ -613,12 +613,12 @@ void interprete(int scale, image i){
 
 void start(){
 	image i = read_ppm("input.ppm");
-	int scale = 30;
+	int scale = 5;
 	const int screenWidth = i.w * scale;
 	const int screenHeight = i.h * scale;
-	printf("%d %d", i.w, screenHeight); 
-	InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
-	SetTargetFPS(60);
+//	printf("%d %d", i.w, screenHeight); 
+	//InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
+	//SetTargetFPS(60);
 	interprete(scale, i);
 	free(i.pixels);
 }
@@ -627,14 +627,5 @@ void start(){
 int main(){
 start();
 
-	image i = read_ppm("input.ppm");
-	point pos;
-	pos.x = 0; pos .y = 0;
-	point p = find_next_edge(i, pos, 0,0);
-	int x = 2;
-	int y = 13;
-	int col = get_pixel_coord(i,x,y);
-	printf("associate_col %#08x is_passante: %d \n", col, is_passante(col) );
-	free(i.pixels);
 	return 0;
 }
