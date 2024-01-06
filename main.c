@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "operations.h"
@@ -441,8 +442,9 @@ int calculate_lum_diff(int i1, int i2){
 
 }
 
+
 point get_next_block(image i, int x, int y,int* bo, int* d, int count, bool has_turned, bool* passeparpassant){
-	//printf("x: %d, y : %d, bord : %d, direction : %d, count %d\n", x, y, *bo, *d, count);
+//	printf("x: %d, y : %d, bord : %d, direction : %d, count %d\n", x, y, *bo, *d, count);
 
 	bool* traite = malloc(sizeof(bool) * i.w * i.h);
 	for(int k = 0 ; k < i.w * i.h ; k++) traite[k] = false;
@@ -472,16 +474,17 @@ point get_next_block(image i, int x, int y,int* bo, int* d, int count, bool has_
 	pos.x = ed.x + dx;
 	pos.y = ed.y + dy;
 	pixel p = get_pixel(i, pos.x, pos.y);
+//	printf("\nis passant:%d  %d %d : color: %#08x \n", is_passante(p), ed.x, ed.y, rgbtohtml(p));
 	if(associate_col(rgbtohtml(p)) >= 0) return pos;
 	if(!is_passante(p)) {
 		if(has_turned){
 			if(count == 8){
-				perror("couldn't find the next block");
+				perror("\n finished / couldn't find the next block\n");
 				exit(0);
 			}
 			//tester en changeant le bord
 			*d = (*d + 1) % 4;
-			*bo = 1 - *bo;
+		//	*bo = 1 - *bo;
 			return get_next_block(i,x,y, bo, d, count+1, false, passeparpassant);
 		}
 		else {
@@ -496,7 +499,10 @@ point get_next_block(image i, int x, int y,int* bo, int* d, int count, bool has_
 			pos.y = pos.y + dy;
 			p = get_pixel(i, pos.x, pos.y);
 		}
-		if(associate_col(rgbtohtml(p) >= 0)) return pos;
+			fflush(stdout);
+		if(associate_col(rgbtohtml(p)) >= 0) {
+			return pos;
+		}
 		else {
 			pos.x = pos.x - dx;
 			pos.y = pos.y - dy;
@@ -505,6 +511,11 @@ point get_next_block(image i, int x, int y,int* bo, int* d, int count, bool has_
 		}
 	}
 }
+
+
+
+
+
 void operate(image i,stack* s, int* dir, int* bo, point prev_block, point  curr_block){
 	int prev = rgbtohtml(get_pixel(i, prev_block.x, prev_block.y));
 	int curr = rgbtohtml(get_pixel(i, curr_block.x, curr_block.y));
@@ -518,91 +529,89 @@ void operate(image i,stack* s, int* dir, int* bo, point prev_block, point  curr_
 //	printf("diff lum : %d, cran :%d\n", diff_lum, cran);
 	if(cran == 0){
 		if(diff_lum == 0) {
-			perror("get_block merde check le cas diff_lum == 0");
-			exit(4);
+			//perror("get_block merde check le cas diff_lum == 0");
+			//exit(4);
 		}
 		if(diff_lum == 1){
-			printf("empile");
+printf("empile");
 			bool* traite = malloc(i.w * i.h *sizeof(bool));
 			for(int j = 0; j < i.w * i.h; j++) traite[j] = false;
 			int size = get_block_size(i, get_pixel(i,prev_block.x,prev_block.y), prev_block.x,prev_block.y, traite);
 			free(traite);
 			push(s,size);
 		}
-		if(diff_lum == 2) printf("pop");
+		if(diff_lum == 2)printf("pop");
 		if(diff_lum == 2 && s->n > 0){
 			pop(s);
 		}
 	}
 	if(cran == 1){
 		if(diff_lum == 0) {
-			printf("plus");
+printf("plus");
 			plus(s);
 		}
 		if(diff_lum == 1){
-			printf("moins");
+printf("moins");
 			moins(s);
 		}
 		if(diff_lum == 2){
-			printf("fois");
+printf("fois");
 			fois(s);
 		}
 	}
 	if(cran == 2){
 		if(diff_lum == 0){
-			printf("divise");
+printf("divise");
 			divise(s);
 		}
 		if(diff_lum == 1){
-			printf("reste");
+printf("reste");
 			reste(s);
 		}
 		if(diff_lum == 2){
-			printf("non");
+printf("non");
 			non(s);
 		}
 	}
 	if(cran == 3){
 		if(diff_lum == 0) {
-			printf("plusgrand");
+printf("plusgrand");
 			plus_grand(s);
 		}
 		if(diff_lum == 1) {
-			printf("drection");
-			int new_d = direction(s, *dir);
-			*dir = new_d;
+printf("drection");
+			 direction(s, dir);
 		}
 		if(diff_lum == 2){
-			printf("bord");
-			int new_b = bord(s, *bo);
-			*bo = new_b;
+printf("bord");
+			bord(s, bo);
 		}
 	}
 	if(cran == 4){
 		if(diff_lum == 0) {
-			printf("duplique");
+printf("duplique");
 			duplique(s);
 		}
 		if(diff_lum == 1){
-			printf("tourne");
+printf("tourne");
 			tourne(s);
 		}
 		if(diff_lum == 2){
-			printf("in-num");
+printf("in-num");
 			in_num(s);
 		}
 	}
 	if(cran == 5){
 		if(diff_lum == 0) {
-			printf("in-char");
+printf("in-char");
 			in_char(s); 
 		}
 		if(diff_lum == 1){
-			printf("out-num");
+printf("out-num");
 			out_num(s);
 		}
 		if(diff_lum == 2){
-			printf("outchar");
+printf("outchar");
 			out_char(s);
 		}
 	}
@@ -626,11 +635,13 @@ void interprete(image i, int x, int y, int dir, int bo, stack* s){
 	curr.y = y;
 	fflush(stdout);	
 	printf("\nbord: %d, direction :%d, color: %#08x", bo, dir, rgbtohtml(get_pixel(i,curr.x,curr.y)));
+	//
+	
 	int scale = 30;
 	fflush(stdout);
 	bool check = true;
 	while(check){
-		//check = false;
+	//	check = false;
 		check = !IsKeyPressed(KEY_RIGHT);
 	pixel p;
 	BeginDrawing();
@@ -651,9 +662,11 @@ void interprete(image i, int x, int y, int dir, int bo, stack* s){
 	point next_block = get_next_block(i, x, y, &bo, &dir, 0, false, &passe_par_passant);
 	next_block.x = (next_block.x < 0)  ? (next_block.x  + i.w) % i.w : next_block.x % i.w; 
 	next_block.y = (next_block.y < 0)  ? (next_block.y  + i.h) % i.h : next_block.y % i.h;
-	//printf("%d, %d -> %d %d, dir: %d, bord : %d\n", x, y,next_block.x, next_block.y, dir, bo);
+//	printf("\n%d, %d -> %d %d, dir: %d, bord : %d\n", x, y,next_block.x, next_block.y, dir, bo);
 	if(associate_col(rgbtohtml(get_pixel(i,next_block.x, next_block.y))) < 0 && !is_passante(get_pixel(i,next_block.x, next_block.y))){
 		printf("\nbord: %d, dir: %d\nprev: %d, %d\nnext: %d, %d\n", (bo), (dir),curr.x, curr.y, next_block.x, next_block.y);
+		printf("color: %#08x\n", rgbtohtml(get_pixel(i, 8,2)));
+				
 		perror("why am I here");
 		exit(48);
 	}

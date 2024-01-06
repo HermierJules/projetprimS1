@@ -59,24 +59,22 @@ void plus_grand(stack* s){
 	push(s, (n2 > n1) ? 1 : 0);
 }
 
-int bord(stack* s, int b){
-	if(s->n < 1){
-		perror("not enough element for bord");
-		exit(2);
-	}
-	int bord = b;
-	for(int i = 0; i < pop(s); i++){
+void bord(stack* s, int* b){
+	if(s->n < 1) return;
+	int bord = *b;
+	int n = pop(s);
+
+	for(int i = 0; i < n; i++){
 		bord = 1 - bord;
 	}
-	return bord;
+	*b = bord;
 }
 
-int direction(stack* s, int d){
-	if(s->n < 1){
-		perror("not enough stack elements");
-		exit(43);
-	}
-	return (d + pop(s)) % 4;
+void direction(stack* s, int* d){
+	if(s->n < 1) return;
+	int k = pop(s);
+	*d = (*d + k) % 4;
+	while(*d < 0) *d = *d + 4; 
 }
 
 void duplique(stack* s){
@@ -85,6 +83,7 @@ void duplique(stack* s){
 	push(s,n);
 	push(s,n);
 }
+
 
 void tourne(stack* s){
 	if(s->n < 2) return;
@@ -110,30 +109,42 @@ void tourne(stack* s){
 	}
 }
 
+
 void in_num(stack* s){
 	int n;
-	printf("input a number\n");
+//	printf("input a number\n");
 	fflush(stdout);
-	read(STDIN_FILENO, &n, sizeof(int));
+	//read(STDIN_FILENO, &n, sizeof(int));
+	char buf[256];
+	fgets(buf, 256, stdin);
+	sscanf(buf,"%d\n",&n);
 	push(s,n);
 }
 void in_char(stack* s){
 	char n;
-	printf("input a char\n");
-	fflush(stdout);
-	read(STDIN_FILENO, &n, sizeof(char));
+//	printf("input a char\n");
+	//fflush(stdout);
+	//read(STDIN_FILENO, &n, sizeof(char));
+	n = getc(stdin);
 	push(s,n);
 }
 
 void out_num(stack* s){
 	if(s->n < 1) return;
-	int n = pop(s);
-	write(STDOUT_FILENO, &n, sizeof(int));
+	int n =  0;
+	n = pop(s);
+	printf("%d",n );
+	fflush(stdout);
+	//write(STDOUT_FILENO, &n, sizeof(int));
 }
 
 void out_char(stack* s){
 	if(s->n < 1) return;
 	char n = pop(s);
-	write(STDOUT_FILENO, &n, sizeof(char));
+	printf("%c",n );
+	fflush(stdout);
+	
+	//write(STDOUT_FILENO, &n, sizeof(char));
 }
+
 
