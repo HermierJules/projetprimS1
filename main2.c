@@ -1,9 +1,17 @@
+#include <SDL2/SDL_surface.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "operations.h"
 #include "raylib.h"
 #include <unistd.h>
+
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+
+#include <FreeImage.h>
+
+#include "stb_image.h"
 
 struct image{
 	int w;
@@ -592,7 +600,7 @@ void interprete(int scale, image i){
 	while(true){
 
 	//	printf("\nx: %d, y: %d, bord: %d, dir : %d", pos.x, pos.y, bo, dir);
-	//	draw_image_and_highlight(i, pos, scale);
+		draw_image_and_highlight(i, pos, scale);
 		bool passant = false;
 		point next_block = get_next_block(i, pos, &dir, &bo, 0, false, &passant, &finished);
 		if(finished) break;
@@ -610,22 +618,78 @@ void interprete(int scale, image i){
 	free(s);
 }
 
+image read_image(char* filename){
+	int w, h, ch;
+	unsigned char* image_data = stbi_load(filename, &w, &h, &ch, 0);
+	if(!image_data){
+		fprintf(stderr, "Couldn't load the image: %s\n", stbi_failure_reason());
+		exit(1);
+	}
+	image i;
+	i.w = w;
+	i.h = h;
+	i.pixels = malloc(sizeof(int) * w * h);
+	for(int x = 0; x < w; x++){
+		for(int y = 0; y < h; y++){
+			int pixel_index = (y * w + x) * ch;
+			int r = image_data[pixel_index ];
+			int g = image_data[pixel_index + 1];
+			int b = image_data[pixel_index + 2];
+			i.pixels[y * w + x] = rgbtohtml(r,g,b);
+		}
+	}
+	stbi_image_free(image_data);
+	return i;
+}
 
-void start(){
-	image i = read_ppm("input.ppm");
+image read_image_sdl(char* filename){
+	SDL_Surface* img = IMG_Load(filename);
+	if(!img){
+		fprintf(stderr,"Error loading image: %s", IMG_GetError());
+		exit(EXIT_FAILURE);
+	}
+	image i;
+	i.h = (int)img->h;
+	i.w = (int)img->w;
+	Uint32* pixels = (Uint32*)img->pixels;
+	i.pixels = malloc(sizeof(int) * i.w * i.h);
+	if(!i.pixels){
+		fprintf(stderr, "couldn't allocate memory for pixels\n");
+		SDL_FreeSurface(img);
+		exit(EXIT_FAILURE);
+	}
+
+	for(int x = 0; x < i.w; x++){
+		for(int y = 0; y < i.h; y++){
+			Uint8 r, g, b, a;
+			r = 0;
+			g = 0;
+			b = 0;
+			Uint32 pixel = pixels[y * i.w + x];
+			SDL_GetRGBA(pixel, img->format, &r, &g, &b, &a);
+			printf("%d %d %d\n",r,g,b);
+			i.pixels[y * i.w + x] = rgbtohtml(r,g,b);
+		}
+	}
+	SDL_FreeSurface(img);
+	return i;
+}
+
+void start(char* file_path){
+	image i = read_ppm(file_path);
 	int scale = 5;
 	const int screenWidth = i.w * scale;
 	const int screenHeight = i.h * scale;
 //	printf("%d %d", i.w, screenHeight); 
-	//InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
-	//SetTargetFPS(60);
+	InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
+	SetTargetFPS(60);
 	interprete(scale, i);
 	free(i.pixels);
 }
 
 
-int main(){
-start();
 
+int main(int argc, char** argv){
+	start(argv[1]);
 	return 0;
 }
