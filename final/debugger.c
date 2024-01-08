@@ -1,15 +1,11 @@
-#include <SDL2/SDL_surface.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "operations.h"
 #include "raylib.h"
 #include <unistd.h>
+#include <string.h>
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-
-#include <FreeImage.h>
 
 #include "stb_image.h"
 
@@ -556,11 +552,11 @@ void operate(point prev_pos,image i, int prev_col, int next_col, int* dir, int* 
 
 
 
-void draw_image_and_highlight(image i, point p, int scale){
+void draw_image_and_highlight(image i, point p, int scale, bool step){
 	bool check = true;
 	while(check){
-		check = false;
-	//	check = !IsKeyPressed(KEY_RIGHT);
+		if(step) check = !IsKeyPressed(KEY_RIGHT);
+		else check = false;
 		BeginDrawing();
 		ClearBackground(RAYWHITE);
 		for(int x = 0; x < i.w; x++){
@@ -573,7 +569,7 @@ void draw_image_and_highlight(image i, point p, int scale){
 					Color col = (Color){r,g,b, 255};
 					DrawRectangle(x * scale, y * scale, scale, scale, col);
 				}
-			else if(is_passante(c)){
+				else if(is_passante(c)){
 					DrawRectangle(x * scale, y * scale, scale, scale, RAYWHITE);
 				}
 				else {
@@ -589,7 +585,25 @@ void draw_image_and_highlight(image i, point p, int scale){
 	}
 }
 
-void interprete(int scale, image i){
+bool breakpoint_mem(stack* s, int x, int y){
+	fflush(stdout);
+	bool check = false;
+	stack* s2 = create_stack();
+	while(s->n > 0){
+		int kx = pop(s);
+		int ky = pop(s);
+		if(kx == x && ky == y) check = true;
+		push(s2, kx);
+		push(s2, ky);
+	}
+	while(s2-> n > 0){
+		push(s, pop(s2));
+	}
+	return check;
+}
+
+
+void interprete(int scale, image i, stack* bp, bool visu, bool step){
 	stack* s = create_stack();
 	point pos;
 	pos.x = 0;
@@ -598,22 +612,31 @@ void interprete(int scale, image i){
 	int dir = 0;
 	bool finished = false;
 	while(true){
+		if(breakpoint_mem(bp, pos.x, pos.y)){
+			char buf[256];
+			printf("Breakpoint reached, switch to step by step mode ?[y/n] ");
+			fgets(buf, 256, stdin);
+			char ch;
+			sscanf(buf, "%c\n", &ch);
+			if(ch == 'y') step = true;
+		}
 
-	//	printf("\nx: %d, y: %d, bord: %d, dir : %d", pos.x, pos.y, bo, dir);
-	//	draw_image_and_highlight(i, pos, scale);
+		printf("\nx: %d, y: %d, bord: %d, dir : %d", pos.x, pos.y, bo, dir);
+		if(visu){
+		draw_image_and_highlight(i, pos, scale, step);
+		}
 		bool passant = false;
 		point next_block = get_next_block(i, pos, &dir, &bo, 0, false, &passant, &finished);
 		if(finished) break;
 		if(!passant){
-			operate(pos, i, get_pixel(i, pos), get_pixel(i, next_block), &dir, &bo, s);
-		//	operate_debug(pos, i, get_pixel(i, pos), get_pixel(i, next_block), &dir, &bo, s);
+			operate_debug(pos, i, get_pixel(i, pos), get_pixel(i, next_block), &dir, &bo, s);
 		}
 		else {
-			//printf("passé par passant, nothing");
+			printf("passed by a passing color, nothing");
 		}
 		pos.x = next_block.x;
 		pos.y = next_block.y;
-//		print_stack(s);
+		print_stack(s);
 	}
 	free(s);
 }
@@ -642,54 +665,84 @@ image read_image(char* filename){
 	return i;
 }
 
-image read_image_sdl(char* filename){
-	SDL_Surface* img = IMG_Load(filename);
-	if(!img){
-		fprintf(stderr,"Error loading image: %s", IMG_GetError());
-		exit(EXIT_FAILURE);
-	}
-	image i;
-	i.h = (int)img->h;
-	i.w = (int)img->w;
-	Uint32* pixels = (Uint32*)img->pixels;
-	i.pixels = malloc(sizeof(int) * i.w * i.h);
-	if(!i.pixels){
-		fprintf(stderr, "couldn't allocate memory for pixels\n");
-		SDL_FreeSurface(img);
-		exit(EXIT_FAILURE);
-	}
-
-	for(int x = 0; x < i.w; x++){
-		for(int y = 0; y < i.h; y++){
-			Uint8 r, g, b, a;
-			r = 0;
-			g = 0;
-			b = 0;
-			Uint32 pixel = pixels[y * i.w + x];
-			SDL_GetRGBA(pixel, img->format, &r, &g, &b, &a);
-			printf("%d %d %d\n",r,g,b);
-			i.pixels[y * i.w + x] = rgbtohtml(r,g,b);
-		}
-	}
-	SDL_FreeSurface(img);
-	return i;
-}
-
-void start(char* file_path){
+void start(char* file_path, stack* breakpoints, bool visu, bool step, int scale){
 	image i = read_ppm(file_path);
-	int scale = 5;
-	const int screenWidth = i.w * scale;
-	const int screenHeight = i.h * scale;
-//	printf("%d %d", i.w, screenHeight); 
-	InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
-	SetTargetFPS(60);
-	interprete(scale, i);
+	if(visu){
+		const int screenWidth = i.w * scale;
+		const int screenHeight = i.h * scale;
+		printf("%d %d", i.w, screenHeight); 
+		InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
+		SetTargetFPS(60);
+	}
+	interprete(scale, i, breakpoints, visu, step);
 	free(i.pixels);
 }
 
+void add_breakpoint(stack* s){
+	printf("Input the x and y values as such: x y\n");
+	int x, y;
+	char buf[256];
+	fgets(buf, 256, stdin);
+	sscanf(buf,"%d %d\n", &x, &y);
+	push(s,y);
+	push(s,x);
+}
+
+void print_breakpoints(stack* s){
+	stack* s2 = create_stack();
+	while(s->n > 0){
+		int kx = pop(s);
+		int ky = pop(s);
+		printf("(%d, %d) | ", kx, ky);
+		push(s2, kx);
+		push(s2, ky);
+	}
+	printf("\n");
+	while(s2-> n > 0){
+	push(s, pop(s2));
+	push(s, pop(s2));
+	}
+}
+
+void print_ui(char* fp){
+	char* on1 = "off";
+	char* on2 = "off";
+	bool visu = false;
+	stack* breakpoints = create_stack();
+	bool step = false;
+	printf("Welcome to the Cornelis debugger\n");
+	bool st = true;
+	int scale = 10;
+	while(st){
+		int n;
+		printf("--------------------------------------------------------\n");
+		printf("1| Start Execution\n2| Visualise Program: %s\n3| Add Breakpoint\n4| Step By Step : %s\n5| Change Scale: current scale is %d\n", on1, on2, scale);
+		printf("Current Breakpoints:\n");
+		if(breakpoints->n == 0) printf("None\n");
+		else print_breakpoints(breakpoints);
+		printf("--------------------------------------------------------\n");
+		char buf[256];
+		fgets(buf, 256, stdin);
+		sscanf(buf,"%d\n", &n);
+		switch(n){
+			case 1: st = false; break;
+			case 2: visu = 1 - visu; if(strcmp(on1, "off") == 0) on1 = "on"; else on1 = "off"; break;
+			case 3: add_breakpoint(breakpoints); break;
+			case 4: step = 1 - step; if(strcmp(on2, "off") == 0) on2 = "on"; else on2 = "off"; break;
+			case 5: printf("Input new scale:\n"); fgets(buf, 256, stdin); sscanf(buf, "%d\n", &scale); break;
+			default: printf("Incorrect input"); break;
+		}
+	}
+
+start(fp, breakpoints, visu, step, scale);
+}
 
 
 int main(int argc, char** argv){
-	start(argv[1]);
+	if(argc != 2){
+		fprintf(stderr, "Missing arguments");
+		return 1;
+	}
+	print_ui(argv[1]);
 	return 0;
 }

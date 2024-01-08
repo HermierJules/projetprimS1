@@ -1,36 +1,18 @@
-#include <SDL2/SDL_surface.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "operations.h"
-#include "raylib.h"
-#include <unistd.h>
+#include "read.h"
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-
-#include <FreeImage.h>
 
 #include "stb_image.h"
 
-struct image{
-	int w;
-	int h;
-	int* pixels;
-};
-typedef struct image image;
 
 struct point{
 	int x;
 	int y;
 };
 typedef struct point point;
-
-
-int rgbtohtml(int r, int g, int b){
-	return (r << 16) | (g << 8) | b;
-}
-
 
 const int lightred = 0xFF8080;
 const int red = 0xFF0000;
@@ -58,7 +40,9 @@ const int darkmagenta = 0x800080;
 
 int colortab[] = {lightred, red, darkred, lightyellow, yellow, darkyellow, lightgreen, green, darkgreen, lightcyan, cyan, darkcyan, lightblue, blue, darkblue, lightmagenta, magenta, darkmagenta};
 
-
+//@requires v to be an html color code
+//@assigns
+//@ensures returns true if v is a coding color, false otherwise
 bool is_codante(int v){
 	for(int k = 0; k < 18; k++){
 		if(colortab[k] == v) return true;
@@ -66,6 +50,11 @@ bool is_codante(int v){
 	return false;
 }
 
+
+
+//@requires c to be an html color code 
+//@assigns
+//@ensures returns the associated luminescence value, 0 for light, 1 for normal and 2 for dark 
 int associate_lum(int c) {
 	if (c == lightred || c == lightyellow || c == lightgreen || c == lightcyan || c == lightblue || c == lightmagenta) return 0;
 	if (c == red || c == yellow || c == green || c == cyan || c == blue || c == magenta) return 1;
@@ -74,6 +63,9 @@ int associate_lum(int c) {
 }
 
 
+//@requires c to be an html color code 
+//@assigns
+//@ensures returns the associated color value 
 int associate_col(int c) {
 	//peut aussi être coder en parcourant colortab 3 par 3
 	if (c == lightred || c == red || c == darkred) return 0;
@@ -85,71 +77,10 @@ int associate_col(int c) {
 	return -1; 
 }
 
-image read_ppm(char* filename) {
-    FILE* fp = fopen(filename, "r");
 
-    if (fp == NULL) {
-        fprintf(stderr, "Error opening file: %s\n", filename);
-        exit(EXIT_FAILURE);
-    }
-
-    // Read the PPM header
-    char magic[3];
-    int width, height, max_val;
-
-    // Read magic number (P6 for binary PPM)
-    fscanf(fp, "%2s", magic);
-
-    // Check if the file is a binary PPM
-    if (magic[0] != 'P' || magic[1] != '6') {
-        fprintf(stderr, "Invalid PPM file format: %s\n", filename);
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    // Skip comments
-    char c = getc(fp);
-    while (c == '#') {
-        while (getc(fp) != '\n');  // Skip the rest of the line
-        c = getc(fp);
-    }
-    ungetc(c, fp);  // Return the non-# character back to the stream
-
-    // Read width, height, and max pixel value
-    fscanf(fp, "%d %d %d", &width, &height, &max_val);
-
-    // Allocate memory for the image structure
-    image img;
-    img.w = width;
-    img.h = height;
-
-    // Allocate memory for the pixels
-    img.pixels = (int*)malloc(width * height * sizeof(int));
-
-    // Check if memory allocation was successful
-    if (img.pixels == NULL) {
-        fprintf(stderr, "Memory allocation error\n");
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    // Consume the newline character following the header
-    getc(fp);
-
-    // Read pixel data
-	for(int i = 0; i < width * height; i++){
-		int red = 0;
-		int blue = 0;
-		int green = 0;
-    	fread(&red, 1, 1, fp);
-    	fread(&green, 1, 1, fp);
-    	fread(&blue, 1, 1, fp);
-		img.pixels[i] = rgbtohtml(red,green,blue);
-	}
-	fclose(fp);
-    return img;
-}
-
+//@requires image to be a proper image and p to be a position inside the bounds of the image 
+//@assigns
+//@ensures returns the html color code in the position (p.x, p.y) 
 int get_pixel(image i, point p){
 	int x = p.x;
 	int y = p.y;
@@ -164,6 +95,9 @@ int get_pixel_coord(image i, int x, int y){
 	return i.pixels[i.w * y + x];
 }
 
+//@requires  i to be an html color code
+//@assigns
+//@ensures returns true if i is a passing color, false otherwise 
 bool is_passante(int i){
 	int r = i >> 16;
 	int g = (i - (r << 16)) >> 8;
@@ -172,7 +106,13 @@ bool is_passante(int i){
 	return true;
 }
 
+
+
+//@requires i to be a properly initialized image, init html color code, traite to not be NULL 
+//@assigns
+//@ensures returns the size of the block situated in (x,y) 
 int get_block_size(image i, int init, int x, int y, bool* traite){
+	//END case: has been visited already. Finite number of pixels so will end
 	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
 	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
 	if(traite[i.w * y + x]) return 0;
@@ -240,7 +180,10 @@ bool sud_front(image i, point pos){
 }
 
 
-//is p1 better than p2
+//@requires front, compare1  and compare2 to be properly initialized functions without memory leaks.
+//@assign nothing
+//@ensures returns true if p1 is "better" than p2 using compare1 first, compare2 second and that the final result is true according to font
+//(there will always be a pixel to which front will associate true due to the nature of the 2D terrain)
 bool is_better(image i, point p1, point p2, bool (*front)(image,point),int (*compare1)(point,point), int (*compare2)(point,point)){
 	if(!front(i,p2)) return true;
 	if(!front(i,p1)) return false;
@@ -252,6 +195,10 @@ bool is_better(image i, point p1, point p2, bool (*front)(image,point),int (*com
 	return false;
 }
 
+
+//@requires front, compare1  and compare2 to be properly initialized functions without memory leaks. Traite to be an Array of size i.w * i.h at least initialized to false
+//@assign nothing
+//@ensures returns the wanted pixel according to compare1 and compare2 
 point find_next_border(image i, point start, int x, int y, bool* traite, int (*compare1)(point,point), int (*compare2)(point,point), bool (*front)(image,point)){
 	x = (x < 0)  ? (x  + i.w) % i.w : x % i.w; 
 	y = (y < 0)  ? (y  + i.h) % i.h : y % i.h;
@@ -285,6 +232,11 @@ point find_next_border(image i, point start, int x, int y, bool* traite, int (*c
 
 //0 babord
 //1 tribord
+
+
+//@requires bord and dir to be in their respective bounds
+//@assign a boolean array of size i.w * i.h temporarily 
+//@ensures returns the next edge pixel according to the direction and bord 
 point find_next_edge(image i, point pos,int bord, int dir){
 	bool * traite = malloc(sizeof(bool) * i.w * i.h);
 	for(int k = 0; k < i.w * i.h; k++) traite[k] = false;
@@ -337,6 +289,9 @@ int get_dy(int dir){
 }
 
 
+//@requires 
+//@assign 
+//@ensures p.x = |p.x| && p.y = |p.y| 
 point normalize_point(image i, point p){
 	int x = p.x;
 	int y = p.y;
@@ -347,6 +302,10 @@ point normalize_point(image i, point p){
 	return p;
 }
 
+//@requires dir, bo, passant and finished to not be NULL, i to be properly initialized and start to be in bounds
+//@assigns a boolean array of size i.w * i.h temporarily in its calls
+//@ensures returns a pixel from the next block according to the current direction and bord. Changes the bord and direction according to the language description
+//will return the starting pixel and change finished to true if it get stuck 8 times in a row (inifinitely stuck as it would loop from that point on)
 point get_next_block(image i, point start, int* dir, int* bo,int count, bool has_turned, bool* passant, bool* finished){
 	start = normalize_point(i, start);
 	point edge = find_next_edge(i, start, *bo, *dir);
@@ -358,7 +317,7 @@ point get_next_block(image i, point start, int* dir, int* bo,int count, bool has
 	pos.y = edge.y + dy;
 	if(is_codante(get_pixel(i,pos))) return pos;
 	if(!is_passante(get_pixel(i,pos))){
-			//cas bloquant
+			//blocking color
 			if(!has_turned){
 				*bo = 1 - *bo;
 				return get_next_block(i, start, dir, bo, count, true, passant, finished);
@@ -374,9 +333,12 @@ point get_next_block(image i, point start, int* dir, int* bo,int count, bool has
 	}
 	else {
 		*passant = true;
-		//cas couleur passante
+		//passing color
 		while(is_passante(get_pixel(i, pos)) && !is_codante(get_pixel(i,pos))){
-			//tant que passante et non codante on avance
+			// End when we reach a non-passing color / coding color
+			// Infinite loop in case of continuous strip of passing color
+			// could be fixed by checking if we ever reach a pixel that we've seen by remembering the starting pixel
+			// but the (little) performance cost isn't worth it for an undetermined case in the language description
 			pos.x = pos.x + dx;
 			pos.y = pos.y + dy; 
 		}
@@ -391,7 +353,6 @@ point get_next_block(image i, point start, int* dir, int* bo,int count, bool has
 }
 
 
-//TODO CHECK
 
 //going from i1 to i2
 int calculate_cran(int i1, int i2){
@@ -412,102 +373,10 @@ int calculate_lum_diff(int i1, int i2){
 
 
 
-void operate_debug(point prev_pos,image i, int prev_col, int next_col, int* dir, int* bo, stack* s){
-	int c1 = associate_col(prev_col);
-	int c2 = associate_col(next_col);
-	int l1 = associate_lum(prev_col);
-	int l2 = associate_lum(next_col);
-
-	int cran = calculate_cran(c1, c2);
-	int diff_lum = calculate_lum_diff(l1, l2);
-	printf("cran: %d, diff_lum: %d, operation: ", cran, diff_lum);
-	if(cran == 0){
-		if(diff_lum == 1){
-			printf("empile");
-			bool* traite = malloc(sizeof(bool) * i.w * i.h);
-			for(int j = 0; j < i.w * i.h; j++) traite[j] = false;
-			int k = get_block_size(i, prev_col, prev_pos.x, prev_pos.y, traite);
-			push(s, k);
-			free(traite);	
-		}
-		if(diff_lum == 2 && s->n > 0){
-			printf("depile");
-			pop(s);
-		}
-	}
-	if(cran == 1){
-		if(diff_lum == 0) {
-			printf("plus");
-			plus(s);
-		}
-		if(diff_lum == 1){
-			printf("moins");
-			moins(s);
-		}
-		if(diff_lum == 2){
-			printf("fois");
-			fois(s);
-		}
-	}
-	if(cran == 2){
-		if(diff_lum == 0){
-			printf("divise");
-			divise(s);
-		}
-		if(diff_lum == 1){
-			printf("reste");
-			reste(s);
-		}
-		if(diff_lum == 2){
-			printf("non");
-				non(s);
-		}
-	}
-	if(cran == 3){
-		if(diff_lum == 0){
-			printf("plus grand");
-			plus_grand(s);
-		}
-		if(diff_lum == 1){
-			printf("direction");
-			direction(s, dir);
-			printf("nouvelle dir %d", *dir);
-		}
-		if(diff_lum == 2){
-			printf("bord");
-			bord(s, bo);
-		}
-	}
-	if(cran == 4){
-		if(diff_lum == 0) {
-			printf("duplique");
-			duplique(s);
-		}
-		if(diff_lum == 1){
-			printf("tourne");
-			tourne(s);
-		}
-		if(diff_lum == 2){
-			printf("in num");
-			in_num(s);
-		}
-	}
-	if(cran == 5){
-		if(diff_lum == 0){
-			printf("in char");
-			in_char(s);
-		}
-		if(diff_lum == 1){
-			printf("out_num");
-			out_num(s);
-		}
-		if(diff_lum == 2){
-			printf("out char");
-			out_char(s);
-		}
-	}
-}
-
+//@requires dir, bo, passant and finished to not be NULL, i to be properly initialized and start to be in bounds
+//@assigns a boolean array of size i.w * i.h temporarily in its calls
+//@ensures returns a pixel from the next block according to the current direction and bord. Changes the bord and direction according to the language description
+//will return the starting pixel and change finished to true if it get stuck 8 times in a row (inifinitely stuck as it would loop from that point on)
 void operate(point prev_pos,image i, int prev_col, int next_col, int* dir, int* bo, stack* s){
 	int c1 = associate_col(prev_col);
 	int c2 = associate_col(next_col);
@@ -556,40 +425,7 @@ void operate(point prev_pos,image i, int prev_col, int next_col, int* dir, int* 
 
 
 
-void draw_image_and_highlight(image i, point p, int scale){
-	bool check = true;
-	while(check){
-		check = false;
-	//	check = !IsKeyPressed(KEY_RIGHT);
-		BeginDrawing();
-		ClearBackground(RAYWHITE);
-		for(int x = 0; x < i.w; x++){
-			for(int y = 0; y < i.h; y++){
-				int c = get_pixel_coord(i,x,y);
-				if(is_codante(c)){
-					int r = c >> 16;
-					int g = (c - (r << 16)) >> 8;
-					int b = (c - (r << 16) - (g << 8));
-					Color col = (Color){r,g,b, 255};
-					DrawRectangle(x * scale, y * scale, scale, scale, col);
-				}
-			else if(is_passante(c)){
-					DrawRectangle(x * scale, y * scale, scale, scale, RAYWHITE);
-				}
-				else {
-					DrawRectangle(x * scale, y * scale, scale, scale, BLACK);
-
-				}
-			}
-		}
-		Color col = (Color){GetRandomValue(0, 250), GetRandomValue(50, 250), GetRandomValue(10, 200), 255 };
-		DrawRectangle(p.x * scale, p.y * scale, scale, scale, col);
-		EndDrawing();
-
-	}
-}
-
-void interprete(int scale, image i){
+void interprete(image i){
 	stack* s = create_stack();
 	point pos;
 	pos.x = 0;
@@ -598,98 +434,36 @@ void interprete(int scale, image i){
 	int dir = 0;
 	bool finished = false;
 	while(true){
-
-	//	printf("\nx: %d, y: %d, bord: %d, dir : %d", pos.x, pos.y, bo, dir);
-	//	draw_image_and_highlight(i, pos, scale);
+		//finishes if get_next_block gets stuck 8 times in a raw
 		bool passant = false;
 		point next_block = get_next_block(i, pos, &dir, &bo, 0, false, &passant, &finished);
 		if(finished) break;
 		if(!passant){
 			operate(pos, i, get_pixel(i, pos), get_pixel(i, next_block), &dir, &bo, s);
-		//	operate_debug(pos, i, get_pixel(i, pos), get_pixel(i, next_block), &dir, &bo, s);
 		}
 		else {
-			//printf("passé par passant, nothing");
 		}
 		pos.x = next_block.x;
 		pos.y = next_block.y;
-//		print_stack(s);
 	}
 	free(s);
 }
 
-image read_image(char* filename){
-	int w, h, ch;
-	unsigned char* image_data = stbi_load(filename, &w, &h, &ch, 0);
-	if(!image_data){
-		fprintf(stderr, "Couldn't load the image: %s\n", stbi_failure_reason());
-		exit(1);
-	}
-	image i;
-	i.w = w;
-	i.h = h;
-	i.pixels = malloc(sizeof(int) * w * h);
-	for(int x = 0; x < w; x++){
-		for(int y = 0; y < h; y++){
-			int pixel_index = (y * w + x) * ch;
-			int r = image_data[pixel_index ];
-			int g = image_data[pixel_index + 1];
-			int b = image_data[pixel_index + 2];
-			i.pixels[y * w + x] = rgbtohtml(r,g,b);
-		}
-	}
-	stbi_image_free(image_data);
-	return i;
-}
 
-image read_image_sdl(char* filename){
-	SDL_Surface* img = IMG_Load(filename);
-	if(!img){
-		fprintf(stderr,"Error loading image: %s", IMG_GetError());
-		exit(EXIT_FAILURE);
-	}
-	image i;
-	i.h = (int)img->h;
-	i.w = (int)img->w;
-	Uint32* pixels = (Uint32*)img->pixels;
-	i.pixels = malloc(sizeof(int) * i.w * i.h);
-	if(!i.pixels){
-		fprintf(stderr, "couldn't allocate memory for pixels\n");
-		SDL_FreeSurface(img);
-		exit(EXIT_FAILURE);
-	}
-
-	for(int x = 0; x < i.w; x++){
-		for(int y = 0; y < i.h; y++){
-			Uint8 r, g, b, a;
-			r = 0;
-			g = 0;
-			b = 0;
-			Uint32 pixel = pixels[y * i.w + x];
-			SDL_GetRGBA(pixel, img->format, &r, &g, &b, &a);
-			printf("%d %d %d\n",r,g,b);
-			i.pixels[y * i.w + x] = rgbtohtml(r,g,b);
-		}
-	}
-	SDL_FreeSurface(img);
-	return i;
-}
 
 void start(char* file_path){
-	image i = read_ppm(file_path);
-	int scale = 5;
-	const int screenWidth = i.w * scale;
-	const int screenHeight = i.h * scale;
-//	printf("%d %d", i.w, screenHeight); 
-	InitWindow(screenWidth, screenHeight, "raylib [shapes] example - colors palette");
-	SetTargetFPS(60);
-	interprete(scale, i);
+	image i = read_image(file_path);
+	interprete( i);
 	free(i.pixels);
 }
 
 
 
 int main(int argc, char** argv){
+	if(argc != 2){
+		fprintf(stderr, "Use : interpreter </path/to/program.ppm/bmp/etc...>");
+		return 1;
+	}
 	start(argv[1]);
 	return 0;
 }
