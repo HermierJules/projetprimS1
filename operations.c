@@ -1,5 +1,4 @@
 #include <stdbool.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include "stack.h"
 #include <stdio.h>
